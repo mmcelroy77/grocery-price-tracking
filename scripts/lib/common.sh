@@ -4,7 +4,7 @@ set -euo pipefail
 PROJECT_ROOT="$(cd "$(dirname "${BASH_SOURCE[0]}")/../.." && pwd)"
 SCRIPTS_DIR="$PROJECT_ROOT/scripts"
 VENV="$PROJECT_ROOT/.venv"
-MIN_JAVA=17
+MIN_JAVA=21
 
 # uv installs to ~/.local/bin, which may not be on PATH in a non-login shell yet.
 export PATH="$HOME/.local/bin:$PATH"
