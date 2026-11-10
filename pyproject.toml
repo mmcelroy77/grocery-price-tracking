@@ -20,3 +20,7 @@ where = ["src"]
 
 [tool.pytest.ini_options]
 testpaths = ["tests"]
+
+[tool.ruff]
+line-length = 88
+exclude = ["__pycache__", ".venv", "*.pyc", "*.pyo", "dist/", "build/", "*.egg-info/"]

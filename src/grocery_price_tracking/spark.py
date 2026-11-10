@@ -1,4 +1,5 @@
 """Single place to build the SparkSession so config stays consistent."""
+
 from pyspark.sql import SparkSession
 
 
