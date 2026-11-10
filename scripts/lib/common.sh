@@ -19,7 +19,7 @@ die()  { echo "ERROR: $*" >&2; exit 1; }
 case "$(uname -s)" in
   Linux)  OS=linux ;;
   Darwin) OS=macos ;;
-  *) die "Unsupported OS. Use WSL/Linux, macOS, or scripts\\setup.ps1 on Windows." ;;
+  *) die "Unsupported OS. Use WSL/Linux, macOS, or scripts\\setup\\setup.ps1 on Windows." ;;
 esac
 
 # Print the path of an installed JDK $MIN_JAVA on macOS, or fail if there isn't one.

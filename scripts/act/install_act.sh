@@ -1,11 +1,20 @@
 #!/usr/bin/env bash
-# Step 4: install `act`, the local GitHub Actions runner (requires Docker).
+# Step 4: install `act`, the local GitHub Actions runner, plus Docker (its only requirement).
 #   Linux/WSL: Docker Engine (Docker Desktop on the WSL2 backend) + act via official install script
 #   macOS:     Docker Desktop + act via Homebrew
-source "$(dirname "$0")/lib/common.sh"
+source "$(dirname "$0")/../lib/common.sh"
 
 step "Docker (required by act)"
-command -v docker >/dev/null || die "Docker not found. Install Docker Desktop (macOS/Windows) or Docker Engine (Linux), then re-run."
+if ! command -v docker >/dev/null; then
+  if [[ "$OS" == macos ]]; then
+    command -v brew >/dev/null || die "Homebrew not found. Install it from https://brew.sh, then re-run."
+    brew install --cask docker
+  else
+    sudo apt-get update -y
+    sudo apt-get install -y docker.io
+  fi
+fi
+command -v docker >/dev/null || die "Docker install failed"
 docker info >/dev/null 2>&1 || die "Docker daemon not running. Start Docker Desktop / the docker service, then re-run."
 
 step "act (local GitHub Actions runner)"

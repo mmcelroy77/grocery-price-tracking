@@ -14,7 +14,7 @@ function Get-Distros {
 
 function Assert-Distro($Distro) {
     if ((Get-Distros) -notcontains $Distro) {
-        throw "$Distro is not installed. Run scripts\setup.ps1 first."
+        throw "$Distro is not installed. Run scripts\setup\setup.ps1 first."
     }
 }
 
@@ -66,5 +66,5 @@ function Open-InVSCode($Distro) {
 
 # Open an interactive Ubuntu shell in the project with .venv active.
 function Open-DevShell($Distro) {
-    & wsl.exe -d $Distro --cd "$ProjectRoot" -- bash scripts/dev_shell.sh
+    & wsl.exe -d $Distro --cd "$ProjectRoot" -- bash scripts/setup/dev_shell.sh
 }
