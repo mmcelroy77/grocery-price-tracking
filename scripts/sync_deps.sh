@@ -9,3 +9,6 @@ if [[ -e "$VENV" ]] && ! venv_ok; then
   rm -rf "$VENV"
 fi
 uv sync
+
+step "Activate pre-commit hooks"
+pre-commit install

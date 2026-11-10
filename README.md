@@ -54,9 +54,8 @@ gpt-sample        # or: python -m grocery_price_tracking.jobs.sample_job
 pytest
 ```
 Or from any Ubuntu shell in the project, without activating: `uv run gpt-sample`, `uv run pytest`.
-```
 
-### Ruff & PEP 8 formatting standards
+## Ruff & PEP 8 formatting standards
 This project uses **Ruff** as a fast Python linter and formatter. It ensures all code follows PEP 8 style conventions consistently.
 
 **What Ruff does:**
