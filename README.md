@@ -54,3 +54,24 @@ gpt-sample        # or: python -m grocery_price_tracking.jobs.sample_job
 pytest
 ```
 Or from any Ubuntu shell in the project, without activating: `uv run gpt-sample`, `uv run pytest`.
+
+## Ruff & PEP 8 formatting standards
+This project uses **Ruff** as a fast Python linter and formatter. It ensures all code follows PEP 8 style conventions consistently.
+
+**What Ruff does:**
+- Checks for errors (`E`), style issues (`F`), and best practices (`B`)
+- Formats code to match PEP 8 (the Python style guide)
+- Auto-fixes many issues on save
+
+**How it works:**
+- `ruff format` - reformats code (adds blank lines after docstrings, consistent indentation, etc.)
+- `ruff check` - lints code for potential errors and style violations
+- Pre-commit hooks run automatically on every commit to catch issues early
+- Configuration is in `pyproject.toml` (line-length 88, pycache/venv exclusions)
+
+**Running locally:**
+To check formatting: `ruff format .`
+To lint for errors: `ruff check .`
+To fix what auto-fix can and show what can't: `ruff check . && ruff format .`
+
+If a file fails Ruff checks, it **cannot be committed** — the pre-commit hook will block the commit until the code passes formatting and linting.
