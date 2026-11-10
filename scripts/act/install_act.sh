@@ -4,6 +4,7 @@
 #   macOS:     Docker Desktop + act via Homebrew
 source "$(dirname "$0")/../lib/common.sh"
 
+# --- Docker: required by act (it runs workflows in containers) ---
 step "Docker (required by act)"
 if ! command -v docker >/dev/null; then
   if [[ "$OS" == macos ]]; then
@@ -17,6 +18,7 @@ fi
 command -v docker >/dev/null || die "Docker install failed"
 docker info >/dev/null 2>&1 || die "Docker daemon not running. Start Docker Desktop / the docker service, then re-run."
 
+# --- act: the local GitHub Actions runner ---
 step "act (local GitHub Actions runner)"
 if command -v act >/dev/null; then
   echo "act already present: $(act --version)"
