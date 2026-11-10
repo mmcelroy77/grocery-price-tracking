@@ -40,6 +40,8 @@ Every script is safe to re-run; pick only the parts you want.
 | `install_system_deps.sh` | Linux/macOS | Java 21 (apt on Linux, Homebrew `openjdk@21` on macOS) + uv |
 | `sync_deps.sh` | Linux/macOS | `uv sync`: `.venv` + project/dev deps (rebuilds if broken) |
 | `verify.sh` | Linux/macOS | Java/PySpark check + `uv run pytest` |
+| `install_act.sh` | Linux/macOS | Docker + [`act`](https://github.com/nektos/act) (local GitHub Actions runner) |
+| `run_act.sh` | Linux/macOS | Run workflows locally via `act` (e.g. `bash scripts/run_act.sh -j test`) |
 | `dev_shell.sh` | Linux/macOS | Interactive shell with venv active |
 
 Linux and macOS scripts are run as `bash scripts/<name>.sh`; Windows ones as
@@ -54,6 +56,19 @@ gpt-sample        # or: python -m grocery_price_tracking.jobs.sample_job
 pytest
 ```
 Or from any Ubuntu shell in the project, without activating: `uv run gpt-sample`, `uv run pytest`.
+
+## Local CI (before you push a build pipeline)
+
+Before adding a GitHub Actions build pipeline, you can validate it locally:
+
+- **Static checks**: the pre-commit `actionlint` hook lints `.github/workflows/*.yml` locally (catches YAML, action reference, and expression errors before anything runs).
+- **Full local run**: [`act`](https://github.com/nektos/act) runs your workflows in Docker containers that mirror the GitHub-hosted runners:
+  ```bash
+  bash scripts/install_act.sh      # Docker + act
+  bash scripts/run_act.sh -j test  # run the "test" job locally
+  ```
+
+`act` needs Docker running (Docker Desktop on macOS/Windows, Docker Engine on Linux/WSL). See the [act user guide](https://nektosact.com) for events, matrices, secrets, and inputs.
 
 ## Ruff & PEP 8 formatting standards
 This project uses **Ruff** as a fast Python linter and formatter. It ensures all code follows PEP 8 style conventions consistently.
