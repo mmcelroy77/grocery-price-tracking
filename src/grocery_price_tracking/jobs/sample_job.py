@@ -1,4 +1,5 @@
 """Entry point: read raw CSV, transform, print. Jobs own I/O; transforms own logic."""
+
 import argparse
 
 from grocery_price_tracking.spark import get_spark
