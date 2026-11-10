@@ -1,4 +1,4 @@
-# Shared helpers for the Linux-side scripts. Source it; don't run it.
+# Shared helpers for the Linux/macOS scripts. Source it; don't run it.
 set -euo pipefail
 
 PROJECT_ROOT="$(cd "$(dirname "${BASH_SOURCE[0]}")/../.." && pwd)"
@@ -16,7 +16,28 @@ cd "$PROJECT_ROOT"
 step() { printf '\n\033[36m==> %s\033[0m\n' "$*"; }
 die()  { echo "ERROR: $*" >&2; exit 1; }
 
-[[ "$(uname -s)" == "Linux" ]] || die "Run this inside WSL/Linux (or use scripts/setup.ps1 from Windows)."
+case "$(uname -s)" in
+  Linux)  OS=linux ;;
+  Darwin) OS=macos ;;
+  *) die "Unsupported OS. Use WSL/Linux, macOS, or scripts\\setup.ps1 on Windows." ;;
+esac
+
+# Print the path of an installed JDK $MIN_JAVA on macOS, or fail if there isn't one.
+find_jdk_macos() {
+  local jh prefix
+  jh="$(/usr/libexec/java_home -v "$MIN_JAVA" 2>/dev/null)" && { echo "$jh"; return 0; }
+  prefix="$(brew --prefix "openjdk@$MIN_JAVA" 2>/dev/null || true)"
+  jh="$prefix/libexec/openjdk.jdk/Contents/Home"
+  [[ -n "$prefix" && -d "$jh" ]] && echo "$jh"
+}
+
+# On macOS, use the JDK we found (Homebrew's openjdk is keg-only, so it isn't on PATH).
+if [[ "$OS" == macos ]]; then
+  if jdk="$(find_jdk_macos)"; then
+    export JAVA_HOME="$jdk"
+    export PATH="$JAVA_HOME/bin:$PATH"
+  fi
+fi
 
 # A venv interrupted mid-creation can be missing pieces, so check python + activate.
 venv_ok() { [[ -x "$VENV/bin/python" && -f "$VENV/bin/activate" ]]; }
