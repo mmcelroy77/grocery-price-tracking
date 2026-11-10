@@ -43,7 +43,6 @@ Every script is safe to re-run; pick only the parts you want.
 | `sync_deps.sh` | Linux/macOS | `uv sync`: `.venv` + project/dev deps (rebuilds if broken) |
 | `verify.sh` | Linux/macOS | Java/PySpark check + `uv run pytest` |
 | `act/install_act.sh` | Linux/macOS | Installs Docker + [`act`](https://github.com/nektos/act) (local GitHub Actions runner) |
-| `act/run_act.sh` | Linux/macOS | Run workflows locally via `act` (e.g. `bash scripts/act/run_act.sh -j test`) |
 | `dev_shell.sh` | Linux/macOS | Interactive shell with venv active |
 
 Project setup scripts live in `scripts/setup/` (run as `bash scripts/setup/<name>.sh`); local CI
@@ -68,7 +67,7 @@ Before adding a GitHub Actions build pipeline, you can validate it locally:
 - **Full local run**: [`act`](https://github.com/nektos/act) runs your workflows in Docker containers that mirror the GitHub-hosted runners:
   ```bash
   bash scripts/act/install_act.sh      # Docker + act
-  bash scripts/act/run_act.sh -j test  # run the "test" job locally
+  act -j test                           # run the "test" job locally
   ```
 
 `act` needs Docker running (Docker Desktop on macOS/Windows, Docker Engine on Linux/WSL) — `scripts/act/install_act.sh` installs it if missing. See the [act user guide](https://nektosact.com) for events, matrices, secrets, and inputs.
