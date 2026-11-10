@@ -1,4 +1,4 @@
-# rcfile for scripts/dev_shell.sh: normal bash config + project venv.
+# rcfile for scripts/setup/dev_shell.sh: normal bash config + project venv.
 [[ -f ~/.bashrc ]] && source ~/.bashrc
 export PATH="$HOME/.local/bin:$PATH"   # uv
 export UV_LINK_MODE=copy               # project may live on /mnt/c

@@ -10,13 +10,15 @@ src/grocery_price_tracking/
   jobs/             # entry points: read input, call transforms, write output
 tests/              # pytest, shared `spark` fixture in conftest.py
 data/raw/           # input data
-scripts/            # dev setup (see below)
+scripts/
+  setup/            # project setup (see below)
+  act/              # local CI: act + actionlint
 ```
 
 ## Setup (one time)
 From the project root in PowerShell:
 ```powershell
-powershell -ExecutionPolicy Bypass -File scripts\setup.ps1
+powershell -ExecutionPolicy Bypass -File scripts\setup\setup.ps1
 ```
 Installs WSL + Ubuntu 24.04 if missing (admin shell needed the first time), installs Java 21 and
 [uv](https://docs.astral.sh/uv/), runs `uv sync` to build `.venv`, runs the tests, and drops you
@@ -40,20 +42,35 @@ Every script is safe to re-run; pick only the parts you want.
 | `install_system_deps.sh` | Linux/macOS | Java 21 (apt on Linux, Homebrew `openjdk@21` on macOS) + uv |
 | `sync_deps.sh` | Linux/macOS | `uv sync`: `.venv` + project/dev deps (rebuilds if broken) |
 | `verify.sh` | Linux/macOS | Java/PySpark check + `uv run pytest` |
+| `act/install_act.sh` | Linux/macOS | Installs Docker + [`act`](https://github.com/nektos/act) (local GitHub Actions runner) |
 | `dev_shell.sh` | Linux/macOS | Interactive shell with venv active |
 
-Linux and macOS scripts are run as `bash scripts/<name>.sh`; Windows ones as
-`powershell -ExecutionPolicy Bypass -File scripts\<name>.ps1`.
+Project setup scripts live in `scripts/setup/` (run as `bash scripts/setup/<name>.sh`); local CI
+scripts live in `scripts/act/` (run as `bash scripts/act/<name>.sh`). Windows project setup scripts
+are run as `powershell -ExecutionPolicy Bypass -File scripts\setup\<name>.ps1`.
 
 macOS needs [Homebrew](https://brew.sh) installed first. The macOS scripts have not been tested on a Mac yet.
 
 ## Run
-In the VS Code terminal or a dev shell (`scripts\dev.ps1 [-Shell]`):
+In the VS Code terminal or a dev shell (`scripts\setup\dev.ps1 [-Shell]`):
 ```bash
 gpt-sample        # or: python -m grocery_price_tracking.jobs.sample_job
 pytest
 ```
 Or from any Ubuntu shell in the project, without activating: `uv run gpt-sample`, `uv run pytest`.
+
+## Local CI (before you push a build pipeline)
+
+Before adding a GitHub Actions build pipeline, you can validate it locally:
+
+- **Static checks**: the pre-commit `actionlint` hook lints `.github/workflows/*.yml` locally (catches YAML, action reference, and expression errors before anything runs).
+- **Full local run**: [`act`](https://github.com/nektos/act) runs your workflows in Docker containers that mirror the GitHub-hosted runners:
+  ```bash
+  bash scripts/act/install_act.sh      # Docker + act
+  act -j test                           # run the "test" job locally
+  ```
+
+`act` needs Docker running (Docker Desktop on macOS/Windows, Docker Engine on Linux/WSL) — `scripts/act/install_act.sh` installs it if missing. See the [act user guide](https://nektosact.com) for events, matrices, secrets, and inputs.
 
 ## Ruff & PEP 8 formatting standards
 This project uses **Ruff** as a fast Python linter and formatter. It ensures all code follows PEP 8 style conventions consistently.

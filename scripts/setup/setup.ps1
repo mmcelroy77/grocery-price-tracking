@@ -5,10 +5,10 @@
 
 .USAGE
   From the project root in PowerShell:
-    powershell -ExecutionPolicy Bypass -File scripts\setup.ps1               # setup, open in VS Code
-    powershell -ExecutionPolicy Bypass -File scripts\setup.ps1 -Open shell   # setup, open Ubuntu shell
-    powershell -ExecutionPolicy Bypass -File scripts\setup.ps1 -Open none    # setup only
-  Safe to re-run. Individual steps live in scripts\*.sh / *.ps1 (see README).
+    powershell -ExecutionPolicy Bypass -File scripts\setup\setup.ps1               # setup, open in VS Code
+    powershell -ExecutionPolicy Bypass -File scripts\setup\setup.ps1 -Open shell   # setup, open Ubuntu shell
+    powershell -ExecutionPolicy Bypass -File scripts\setup\setup.ps1 -Open none    # setup only
+  Safe to re-run. Individual steps live in scripts\setup\*.sh / *.ps1 (see README).
 #>
 [CmdletBinding()]
 param(
@@ -16,7 +16,7 @@ param(
     [ValidateSet("code", "shell", "none")]
     [string]$Open = "code"
 )
-. "$PSScriptRoot\lib\wsl.ps1"
+. "$PSScriptRoot\..\lib\wsl.ps1"
 
 function Test-IsAdmin {
     $id = [Security.Principal.WindowsIdentity]::GetCurrent()
@@ -52,7 +52,7 @@ Write-Host "$Distro is installed."
 
 # 3. Linux-side setup (system deps -> uv sync -> verify)
 Write-Step "Running setup inside $Distro (you may be asked for your Linux sudo password)"
-Invoke-InWsl $Distro @("scripts/setup_wsl.sh")
+Invoke-InWsl $Distro @("scripts/setup/setup_wsl.sh")
 
 # 4. VS Code + WSL extension (needed to open the project; checked even with -Open none/shell
 #    so new joiners end up with a working editor)
@@ -64,8 +64,8 @@ Write-Step "Setup complete"
 switch ($Open) {
     "code" {
         if ($codeReady) { Write-Host "Opening project in VS Code (WSL: $Distro)..."; Open-InVSCode $Distro }
-        else { Write-Host "Skipping VS Code. Use: powershell -ExecutionPolicy Bypass -File scripts\dev.ps1 -Shell" }
+        else { Write-Host "Skipping VS Code. Use: powershell -ExecutionPolicy Bypass -File scripts\setup\dev.ps1 -Shell" }
     }
     "shell" { Open-DevShell $Distro }
-    "none"  { Write-Host "Open later with: powershell -ExecutionPolicy Bypass -File scripts\dev.ps1 [-Shell]" }
+    "none"  { Write-Host "Open later with: powershell -ExecutionPolicy Bypass -File scripts\setup\dev.ps1 [-Shell]" }
 }

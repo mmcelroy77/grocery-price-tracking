@@ -3,7 +3,7 @@
 #   Linux/WSL: openjdk-21 via apt (needs sudo)
 #   macOS:     openjdk@21 via Homebrew
 # Python itself is managed by uv (uses system 3.12 if present, otherwise downloads it).
-source "$(dirname "$0")/lib/common.sh"
+source "$(dirname "$0")/../lib/common.sh"
 
 java_major() {
   command -v java >/dev/null || { echo 0; return; }
