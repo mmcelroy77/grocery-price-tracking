@@ -71,15 +71,8 @@ This project uses **Ruff** as a fast Python linter and formatter. It ensures all
 - Configuration is in `pyproject.toml` (line-length 88, pycache/venv exclusions)
 
 **Running locally:**
-```powershell
-# Check formatting
-ruff format .
-
-# Lint for errors
-ruff check .
-
-# Both together (fix what auto-fix can, show what can't)
-ruff check . && ruff format .
-```
+To check formatting: `ruff format .`
+To lint for errors: `ruff check .`
+To fix what auto-fix can and show what can't: `ruff check . && ruff format .`
 
 If a file fails Ruff checks, it **cannot be committed** — the pre-commit hook will block the commit until the code passes formatting and linting.
