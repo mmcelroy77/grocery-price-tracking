@@ -6,7 +6,7 @@ build-backend = "setuptools.build_meta"
 name = "grocery-price-tracking"
 version = "0.1.0"
 requires-python = ">=3.10"
-dependencies = ["pyspark>=4.0"]
+dependencies = ["pyspark==4.1.0"]
 
 [project.scripts]
 gpt-sample = "grocery_price_tracking.jobs.sample_job:main"

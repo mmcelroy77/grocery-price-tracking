@@ -18,7 +18,7 @@ From the project root in PowerShell:
 ```powershell
 powershell -ExecutionPolicy Bypass -File scripts\setup.ps1
 ```
-Installs WSL + Ubuntu 24.04 if missing (admin shell needed the first time), installs Java 17 and
+Installs WSL + Ubuntu 24.04 if missing (admin shell needed the first time), installs Java 21 and
 [uv](https://docs.astral.sh/uv/), runs `uv sync` to build `.venv`, runs the tests, and drops you
 checks VS Code (installs it via winget plus the WSL extension if missing), and opens the project
 in VS Code connected to Ubuntu. Use `-Open shell` for a terminal instead, or `-Open none`.
@@ -35,14 +35,17 @@ Every script is safe to re-run; pick only the parts you want.
 |---|---|---|
 | `setup.ps1 [-Open code\|shell\|none]` | Windows | WSL + Ubuntu, `setup_wsl.sh`, VS Code check, then open project |
 | `dev.ps1 [-Shell]` | Windows | Open project in VS Code (WSL), or an Ubuntu shell with venv active |
-| `setup_wsl.sh [--shell]` | Linux | Runs the three steps below in order |
-| `install_system_deps.sh` | Linux | Java 17 (apt, sudo) + uv |
-| `sync_deps.sh` | Linux | `uv sync`: `.venv` + project/dev deps (rebuilds if broken) |
-| `verify.sh` | Linux | Java/PySpark check + `uv run pytest` |
-| `dev_shell.sh` | Linux | Interactive shell with venv active |
+| `setup_wsl.sh [--shell]` | Linux/WSL | Runs the three steps below in order |
+| `setup_macos.sh [--shell]` | macOS | Same steps as `setup_wsl.sh`, using Homebrew for Java |
+| `install_system_deps.sh` | Linux/macOS | Java 21 (apt on Linux, Homebrew `openjdk@21` on macOS) + uv |
+| `sync_deps.sh` | Linux/macOS | `uv sync`: `.venv` + project/dev deps (rebuilds if broken) |
+| `verify.sh` | Linux/macOS | Java/PySpark check + `uv run pytest` |
+| `dev_shell.sh` | Linux/macOS | Interactive shell with venv active |
 
-Linux scripts are run as `bash scripts/<name>.sh`; Windows ones as
+Linux and macOS scripts are run as `bash scripts/<name>.sh`; Windows ones as
 `powershell -ExecutionPolicy Bypass -File scripts\<name>.ps1`.
+
+macOS needs [Homebrew](https://brew.sh) installed first. The macOS scripts have not been tested on a Mac yet.
 
 ## Run
 In the VS Code terminal or a dev shell (`scripts\dev.ps1 [-Shell]`):
