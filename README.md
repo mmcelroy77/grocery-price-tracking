@@ -49,7 +49,7 @@ Project setup scripts live in `scripts/setup/` (run as `bash scripts/setup/<name
 scripts live in `scripts/act/` (run as `bash scripts/act/<name>.sh`). Windows project setup scripts
 are run as `powershell -ExecutionPolicy Bypass -File scripts\setup\<name>.ps1`.
 
-macOS needs [Homebrew](https://brew.sh) installed first. The macOS scripts have not been tested on a Mac yet.
+On macOS, [Homebrew](https://brew.sh) is installed automatically if missing (may prompt for sudo).
 
 ## Run
 In the VS Code terminal or a dev shell (`scripts\setup\dev.ps1 [-Shell]`):
