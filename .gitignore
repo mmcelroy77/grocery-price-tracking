@@ -10,3 +10,10 @@ data/processed/
 coverage.xml
 htmlcov/
 reports/
+
+# Terraform
+.terraform/
+*.tfstate
+*.tfstate.*
+*.tfvars
+crash.log
