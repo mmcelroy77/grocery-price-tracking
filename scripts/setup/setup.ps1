@@ -68,9 +68,9 @@ $codeReady = Install-VSCode
 Write-Step "Setup complete"
 switch ($Open) {
     "code" {
-        if ($codeReady) { Write-Host "Opening project in VS Code (WSL: $Distro, $linuxDir)..."; Open-InVSCode $Distro $linuxDir }
+        if ($codeReady) { Write-Host "Opening project in VS Code (WSL: $Distro, $linuxDir)..."; Open-InVSCode $Distro }
         else { Write-Host "Skipping VS Code. Use: powershell -ExecutionPolicy Bypass -File scripts\setup\dev.ps1 -Shell" }
     }
-    "shell" { Open-DevShell $Distro $linuxDir }
+    "shell" { Open-DevShell $Distro }
     "none"  { Write-Host "Open later with: powershell -ExecutionPolicy Bypass -File scripts\setup\dev.ps1 [-Shell]" }
 }

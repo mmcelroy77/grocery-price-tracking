@@ -11,10 +11,6 @@ if [[ -e "$DEST" ]]; then
   echo "$DEST already exists; leaving it as is."
   exit 0
 fi
-if [[ "$SRC" == "$DEST" ]]; then
-  echo "Project is already at $DEST."
-  exit 0
-fi
 
 mkdir -p "$DEST"
 tar -C "$SRC" --exclude=.venv --exclude=.pytest_cache -cf - . | tar -C "$DEST" -xf -

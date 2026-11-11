@@ -73,11 +73,11 @@ function Install-VSCode {
 }
 
 # Open the project in VS Code, connected to the distro (so the terminal, Python and venv are Linux).
-function Open-InVSCode($Distro, [string]$LinuxDir = (Get-WslProjectDir $Distro)) {
-    & code --remote "wsl+$Distro" "$LinuxDir"
+function Open-InVSCode($Distro) {
+    & code --remote "wsl+$Distro" (Get-WslProjectDir $Distro)
 }
 
 # Open an interactive Ubuntu shell in the project with .venv active.
-function Open-DevShell($Distro, [string]$LinuxDir = (Get-WslProjectDir $Distro)) {
-    & wsl.exe -d $Distro --cd "$LinuxDir" -- bash scripts/setup/dev_shell.sh
+function Open-DevShell($Distro) {
+    & wsl.exe -d $Distro --cd (Get-WslProjectDir $Distro) -- bash scripts/setup/dev_shell.sh
 }
