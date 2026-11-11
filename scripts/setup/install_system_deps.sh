@@ -12,7 +12,11 @@ java_major() {
 
 if [[ "$OS" == macos ]]; then
   step "System packages (Homebrew)"
-  command -v brew >/dev/null || die "Homebrew not found. Install it from https://brew.sh, then re-run."
+  if ! command -v brew >/dev/null; then
+    echo "Homebrew not found; installing it (may prompt for sudo)."
+    /bin/bash -c "$(curl -fsSL https://raw.githubusercontent.com/Homebrew/install/HEAD/install.sh)"
+    command -v brew >/dev/null || die "Homebrew install failed. Install it from https://brew.sh, then re-run."
+  fi
   if find_jdk_macos >/dev/null; then
     echo "JDK $MIN_JAVA already present."
   else
@@ -20,6 +24,11 @@ if [[ "$OS" == macos ]]; then
   fi
   jdk="$(find_jdk_macos)" || die "JDK $MIN_JAVA not found after install."
   export JAVA_HOME="$jdk" PATH="$jdk/bin:$PATH"
+  # Homebrew's JDK is keg-only, so link it where macOS (and PySpark) look for a runtime.
+  jdk_link="/Library/Java/JavaVirtualMachines/openjdk-$MIN_JAVA.jdk"
+  if [[ ! -e "$jdk_link" ]]; then
+    sudo ln -sfn "$(brew --prefix "openjdk@$MIN_JAVA")/libexec/openjdk.jdk" "$jdk_link"
+  fi
   echo "Java $(java_major) at $JAVA_HOME"
 else
   step "System packages"
@@ -43,4 +52,15 @@ else
   curl -LsSf https://astral.sh/uv/install.sh | sh
   command -v uv >/dev/null || die "uv install failed"
   echo "Installed $(uv --version)"
+fi
+
+# uv lives in ~/.local/bin, which new shells don't have on PATH. Add it once.
+if [[ "$OS" == macos ]]; then
+  rc_file="$HOME/.zshrc"
+else
+  rc_file="$HOME/.bashrc"
+fi
+if ! grep -qs '\.local/bin' "$rc_file"; then
+  printf '\n# uv\nexport PATH="$HOME/.local/bin:$PATH"\n' >> "$rc_file"
+  echo "Added ~/.local/bin to PATH in $rc_file (open a new terminal to pick it up)."
 fi

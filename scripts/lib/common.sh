@@ -33,6 +33,9 @@ find_jdk_macos() {
 
 # On macOS, use the JDK we found (Homebrew's openjdk is keg-only, so it isn't on PATH).
 if [[ "$OS" == macos ]]; then
+  # Homebrew may have just been installed, so it isn't on PATH in this non-login shell yet.
+  # Both prefixes cover Apple Silicon (/opt/homebrew) and Intel (/usr/local).
+  export PATH="/opt/homebrew/bin:/usr/local/bin:$PATH"
   if jdk="$(find_jdk_macos)"; then
     export JAVA_HOME="$jdk"
     export PATH="$JAVA_HOME/bin:$PATH"

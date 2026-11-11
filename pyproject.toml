@@ -13,10 +13,13 @@ gpt-sample = "grocery_price_tracking.jobs.sample_job:main"
 
 # uv installs the "dev" group by default on `uv sync`
 [dependency-groups]
-dev = ["pytest>=8", "coverage", "pytest-cov"]
+dev = ["pytest>=8", "coverage", "pytest-cov", "pre-commit>=4"]
 
 [tool.setuptools.packages.find]
 where = ["src"]
+
+[tool.setuptools.package-data]
+grocery_price_tracking = ["resources/*.properties"]
 
 [tool.pytest.ini_options]
 testpaths = ["tests"]
