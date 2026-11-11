@@ -55,7 +55,7 @@ jobs:
             echo
             echo "<details><summary>Coverage by file</summary>"
             echo
-            uv run coverage report --format=markdown
+            uv run coverage report --format=markdown --show-missing --sort=cover --skip-covered
             echo
             echo "</details>"
           } >> "${GITHUB_STEP_SUMMARY:-/dev/null}"
