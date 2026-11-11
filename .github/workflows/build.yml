@@ -41,7 +41,6 @@ jobs:
             --junitxml=reports/junit.xml \
             --cov=grocery_price_tracking \
             --cov-report=term-missing \
-            --cov-report=xml:reports/coverage.xml \
             --cov-report=html:reports/htmlcov \
             --cov-fail-under=62
 
@@ -49,7 +48,7 @@ jobs:
         if: always()
         run: |
           {
-            echo "## Test and coverage"
+            echo "## Coverage"
             echo
             echo "**Total coverage:** $(uv run coverage report --format=total)%"
             echo
@@ -60,8 +59,7 @@ jobs:
             echo "</details>"
           } >> "${GITHUB_STEP_SUMMARY:-/dev/null}"
 
-      # Per-test results as a check run (needs checks: write, actions: read).
-      # Skipped under act: there's no GitHub Checks API locally.
+      # Per-test results as a check run. Skipped under act (no Checks API locally).
       - name: Publish test results
         if: always() && env.ACT != 'true'
         uses: dorny/test-reporter@v3
