@@ -27,6 +27,10 @@ in VS Code connected to Ubuntu. Use `-Open shell` for a terminal instead, or `-O
 Safe to re-run. The first time VS Code opens, accept the recommended Python extensions so they
 install on the WSL side.
 
+The project is copied to `~/projects/grocery-price-tracking` inside Ubuntu, and all work happens
+there. Don't work from the Windows copy under `/mnt/c`: uv, Spark and pytest are much slower on it.
+Setup never overwrites an existing copy in `~/projects`, so re-running it is safe.
+
 Dependencies are managed with uv: `uv add <pkg>` (or `uv add --dev <pkg>`) updates
 `pyproject.toml` and `uv.lock`; commit both. `uv sync` brings your `.venv` up to date.
 
