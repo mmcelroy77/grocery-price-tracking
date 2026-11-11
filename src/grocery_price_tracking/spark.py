@@ -6,12 +6,13 @@ from pathlib import Path
 
 from pyspark.sql import SparkSession
 
-# Put our log4j2.properties on the driver classpath so Spark uses it instead of its
-# bundled default config (which prints two "using default log4j" notices).
+# Driver classpath entry for the project's log4j2.properties. This entry overrides Spark's
+# bundled default config, which prints two "using default log4j" notices.
 _LOG4J_DIR = Path(__file__).parent / "resources"
 
 # Spark's launcher always passes --add-modules=jdk.incubator.vector, so the JVM prints
-# this warning on startup. No JVM flag disables it, so filter just that line from stderr.
+# the incubator notice on startup. No JVM flag turns off the notice, so stderr is filtered
+# line by line.
 _INCUBATOR_WARNING = b"WARNING: Using incubator modules"
 
 _filtering = False
@@ -38,6 +39,9 @@ def configure(builder: SparkSession.Builder) -> SparkSession.Builder:
     if not _filtering:
         _suppress_incubator_warning()
         _filtering = True
+    # Local mode needs only loopback. Without this, Spark warns when the hostname resolves
+    # to 127.0.1.1 (common on WSL) and binds to another address.
+    os.environ.setdefault("SPARK_LOCAL_IP", "127.0.0.1")
     return builder.config("spark.driver.extraClassPath", str(_LOG4J_DIR))
 
 
