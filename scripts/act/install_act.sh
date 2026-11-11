@@ -52,7 +52,11 @@ if ! docker_ok; then
         echo "WARN: still no socket access. Open a new WSL shell (or run: wsl --shutdown from PowerShell) before using act." >&2
       fi
     else
-      die "Docker daemon not running. Start Docker Desktop (enable WSL integration for this distro) or run: sudo service docker start"
+      if [[ "$OS" == macos ]]; then
+        die "Docker daemon not running. Open Docker Desktop, wait for it to start, then re-run."
+      else
+        die "Docker daemon not running. Start Docker Desktop (enable WSL integration for this distro) or run: sudo service docker start"
+      fi
     fi
   fi
 fi
