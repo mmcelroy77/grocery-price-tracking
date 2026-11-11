@@ -27,3 +27,7 @@ testpaths = ["tests"]
 [tool.ruff]
 line-length = 88
 exclude = ["__pycache__", ".venv", "*.pyc", "*.pyo", "dist/", "build/", "*.egg-info/"]
+
+[tool.coverage.report]
+# Hide files with no statements (empty __init__.py) from the report.
+skip_empty = true
