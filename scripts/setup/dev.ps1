@@ -13,6 +13,7 @@ param(
 . "$PSScriptRoot\..\lib\wsl.ps1"
 
 Assert-Distro $Distro
+Assert-WslProject $Distro
 if ($Shell) {
     Open-DevShell $Distro
 } elseif (Install-VSCode) {

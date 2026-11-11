@@ -50,20 +50,25 @@ if ((Get-Distros) -notcontains $Distro) {
 }
 Write-Host "$Distro is installed."
 
-# 3. Linux-side setup (system deps -> uv sync -> verify)
-Write-Step "Running setup inside $Distro (you may be asked for your Linux sudo password)"
-Invoke-InWsl $Distro @("scripts/setup/setup_wsl.sh")
+# 3. Copy the project into the distro's Linux home. An existing copy is left alone.
+Write-Step "Copying project into $Distro"
+$linuxDir = Get-WslProjectDir $Distro
+Invoke-InWsl $Distro @("scripts/setup/copy_project.sh", $linuxDir)
 
-# 4. VS Code + WSL extension (needed to open the project; checked even with -Open none/shell
+# 4. Linux-side setup, run inside the copy (system deps -> uv sync -> verify)
+Write-Step "Running setup inside $Distro at $linuxDir (you may be asked for your Linux sudo password)"
+Invoke-InWsl $Distro @("scripts/setup/setup_wsl.sh") $linuxDir
+
+# 5. VS Code + WSL extension (needed to open the project; checked even with -Open none/shell
 #    so new joiners end up with a working editor)
 Write-Step "Checking VS Code"
 $codeReady = Install-VSCode
 
-# 5. Open the project
+# 6. Open the project
 Write-Step "Setup complete"
 switch ($Open) {
     "code" {
-        if ($codeReady) { Write-Host "Opening project in VS Code (WSL: $Distro)..."; Open-InVSCode $Distro }
+        if ($codeReady) { Write-Host "Opening project in VS Code (WSL: $Distro, $linuxDir)..."; Open-InVSCode $Distro }
         else { Write-Host "Skipping VS Code. Use: powershell -ExecutionPolicy Bypass -File scripts\setup\dev.ps1 -Shell" }
     }
     "shell" { Open-DevShell $Distro }
