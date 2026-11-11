@@ -1,0 +1,3 @@
+# Single source of truth for the uv version: enforced locally by uv itself and
+# read automatically by astral-sh/setup-uv in CI (no `version:` input needed).
+required-version = "0.13.7"

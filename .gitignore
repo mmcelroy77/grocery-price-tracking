@@ -9,3 +9,4 @@ data/processed/
 .coverage
 coverage.xml
 htmlcov/
+reports/

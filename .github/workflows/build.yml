@@ -5,6 +5,8 @@ on:
 
 permissions:
   contents: read
+  actions: read
+  checks: write
 
 jobs:
   test:
@@ -29,8 +31,61 @@ jobs:
 
       - name: Lint and format check
         run: |
-          uvx ruff@0.17.4 check .
-          uvx ruff@0.17.4 format --check .
+          uv run ruff check .
+          uv run ruff format --check .
 
       - name: Test with coverage
-        run: uv run pytest -q --cov=grocery_price_tracking --cov-report=term-missing --cov-fail-under=62
+        run: |
+          mkdir -p reports
+          uv run pytest -q \
+            --junitxml=reports/junit.xml \
+            --cov=grocery_price_tracking \
+            --cov-report=term-missing \
+            --cov-report=html:reports/htmlcov \
+            --cov-fail-under=62
+
+      - name: Publish summary
+        if: always()
+        run: |
+          {
+            echo "## Coverage"
+            echo
+            echo "**Total coverage:** $(uv run coverage report --format=total)%"
+            echo
+            echo "<details><summary>Coverage by file</summary>"
+            echo
+            uv run coverage report --format=markdown --show-missing --sort=cover --skip-covered
+            echo
+            echo "</details>"
+          } >> "${GITHUB_STEP_SUMMARY:-/dev/null}"
+
+      # Per-test results as a check run. Skipped under act (no Checks API locally).
+      - name: Publish test results
+        if: always() && env.ACT != 'true'
+        uses: dorny/test-reporter@v3
+        with:
+          name: Test results
+          path: reports/junit.xml
+          reporter: java-junit
+          fail-on-error: false
+
+      - name: Local artifact warning
+        if: always() && env.ACT == 'true'
+        run: |
+          echo "::warning::Local act run: uploading with upload-artifact@v4 because act doesn't support v7; GitHub uses upload-artifact@v7."
+          echo "> Local act run: uploaded with upload-artifact@v4 (act can't run v7); GitHub uses v7." \
+            >> "${GITHUB_STEP_SUMMARY:-/dev/null}"
+
+      - name: Upload reports (local)
+        if: always() && env.ACT == 'true'
+        uses: actions/upload-artifact@v4
+        with:
+          name: test-coverage-reports
+          path: reports/
+
+      - name: Upload reports
+        if: always() && env.ACT != 'true'
+        uses: actions/upload-artifact@v7
+        with:
+          name: test-coverage-reports
+          path: reports/
