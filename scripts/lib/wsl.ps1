@@ -3,6 +3,8 @@ $ErrorActionPreference = "Stop"
 $env:WSL_UTF8 = "1"  # make wsl.exe print UTF-8 instead of UTF-16
 
 $ProjectRoot = (Resolve-Path (Join-Path $PSScriptRoot "..\..")).Path  # lib -> scripts -> root
+# The working copy lives in the distro's Linux home, not /mnt/c (the Windows file system is slow for uv, Spark and pytest).
+$WslProjectName = "grocery-price-tracking"
 
 function Write-Step($msg) { Write-Host "`n==> $msg" -ForegroundColor Cyan }
 
@@ -18,9 +20,21 @@ function Assert-Distro($Distro) {
     }
 }
 
-# Run a script from scripts/ inside the distro, in the project root.
-function Invoke-InWsl($Distro, [string[]]$ScriptArgs) {
-    & wsl.exe -d $Distro --cd "$ProjectRoot" -- bash @ScriptArgs
+# Linux path of the project inside the distro, e.g. /home/you/projects/grocery-price-tracking.
+function Get-WslProjectDir($Distro) {
+    $linuxHome = (& wsl.exe -d $Distro -- printenv HOME | Out-String).Trim()
+    return "$linuxHome/projects/$WslProjectName"
+}
+
+function Assert-WslProject($Distro) {
+    $dir = Get-WslProjectDir $Distro
+    & wsl.exe -d $Distro -- test -d $dir
+    if ($LASTEXITCODE -ne 0) { throw "No project at $dir. Run scripts\setup\setup.ps1 first." }
+}
+
+# Run a script from scripts/ inside the distro, in the project root (or -Dir, a Linux path).
+function Invoke-InWsl($Distro, [string[]]$ScriptArgs, [string]$Dir = $ProjectRoot) {
+    & wsl.exe -d $Distro --cd "$Dir" -- bash @ScriptArgs
     if ($LASTEXITCODE -ne 0) { throw "'$($ScriptArgs -join ' ')' failed with exit code $LASTEXITCODE" }
 }
 
@@ -59,12 +73,11 @@ function Install-VSCode {
 }
 
 # Open the project in VS Code, connected to the distro (so the terminal, Python and venv are Linux).
-function Open-InVSCode($Distro) {
-    $linuxPath = (& wsl.exe -d $Distro -- wslpath -a "$ProjectRoot" | Out-String).Trim()
-    & code --remote "wsl+$Distro" "$linuxPath"
+function Open-InVSCode($Distro, [string]$LinuxDir = (Get-WslProjectDir $Distro)) {
+    & code --remote "wsl+$Distro" "$LinuxDir"
 }
 
 # Open an interactive Ubuntu shell in the project with .venv active.
-function Open-DevShell($Distro) {
-    & wsl.exe -d $Distro --cd "$ProjectRoot" -- bash scripts/setup/dev_shell.sh
+function Open-DevShell($Distro, [string]$LinuxDir = (Get-WslProjectDir $Distro)) {
+    & wsl.exe -d $Distro --cd "$LinuxDir" -- bash scripts/setup/dev_shell.sh
 }
