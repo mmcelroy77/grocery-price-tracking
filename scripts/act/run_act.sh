@@ -9,6 +9,8 @@ command -v act >/dev/null || die "act not found; run scripts/act/install_act.sh"
 args=(
   -P ubuntu-latest=catthehacker/ubuntu:act-latest
   --env UV_LINK_MODE=copy
+  # Local artifact server, needed by the workflow's local upload-artifact step.
+  --artifact-server-path "$PROJECT_ROOT/.git/act-artifacts"
 )
 
 # act warns (and may pick the wrong image) on Apple Silicon unless the arch is set.
