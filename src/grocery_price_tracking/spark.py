@@ -18,19 +18,22 @@ _INCUBATOR_WARNING = b"WARNING: Using incubator modules"
 _filtering = False
 
 
+def _forward_stderr(read_fd: int, out_fd: int) -> None:
+    """Copy lines from read_fd to out_fd, dropping the incubator warning."""
+    with os.fdopen(read_fd, "rb", buffering=0) as stream:
+        for line in stream:
+            if _INCUBATOR_WARNING not in line:
+                os.write(out_fd, line)
+
+
 def _suppress_incubator_warning() -> None:
     original = os.dup(2)
     read_fd, write_fd = os.pipe()
     os.dup2(write_fd, 2)
     os.close(write_fd)
-
-    def pump() -> None:
-        with os.fdopen(read_fd, "rb", buffering=0) as stream:
-            for line in stream:
-                if _INCUBATOR_WARNING not in line:
-                    os.write(original, line)
-
-    threading.Thread(target=pump, daemon=True).start()
+    threading.Thread(
+        target=_forward_stderr, args=(read_fd, original), daemon=True
+    ).start()
 
 
 def configure(builder: SparkSession.Builder) -> SparkSession.Builder:
