@@ -64,7 +64,7 @@ jobs:
       # Skipped under act: there's no GitHub Checks API locally.
       - name: Publish test results
         if: always() && env.ACT != 'true'
-        uses: dorny/test-reporter@v2
+        uses: dorny/test-reporter@v3
         with:
           name: Test results
           path: reports/junit.xml
