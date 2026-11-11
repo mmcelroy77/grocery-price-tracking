@@ -10,3 +10,15 @@ repos:
     rev: v1.7.12
     hooks:
       - id: actionlint
+
+  # Run the full workflow locally when pushing changes to .github/.
+  # Slow (Docker + deps), so pre-push rather than pre-commit.
+  - repo: local
+    hooks:
+      - id: act-build
+        name: Local build (act)
+        entry: bash scripts/act/run_act.sh workflow_dispatch -j test
+        language: system
+        files: ^\.github/
+        pass_filenames: false
+        stages: [pre-push]

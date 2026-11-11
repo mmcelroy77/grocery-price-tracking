@@ -6,3 +6,6 @@ spark-warehouse/
 metastore_db/
 derby.log
 data/processed/
+.coverage
+coverage.xml
+htmlcov/

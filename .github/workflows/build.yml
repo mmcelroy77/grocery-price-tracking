@@ -32,5 +32,5 @@ jobs:
           uvx ruff@0.17.4 check .
           uvx ruff@0.17.4 format --check .
 
-      - name: Test
-        run: uv run pytest -q
+      - name: Test with coverage
+        run: uv run pytest -q --cov=grocery_price_tracking --cov-report=term-missing --cov-fail-under=62

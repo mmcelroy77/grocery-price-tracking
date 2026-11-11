@@ -11,4 +11,4 @@ fi
 uv sync
 
 step "Activate pre-commit hooks"
-uv run pre-commit install
+uv run pre-commit install --hook-type pre-commit --hook-type pre-push
