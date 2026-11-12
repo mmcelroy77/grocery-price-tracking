@@ -1,7 +1,7 @@
 name: Release
 
-# Manual for now: run it from the Actions tab. Credentials come from GitHub OIDC (no stored keys).
-# The job runs in the "production" environment, so required reviewers must approve each run.
+# Manual for now: run it from the Actions tab. The job runs in the "production" environment, so required
+# reviewers must approve each run, and only then are that environment's AWS secrets released to it.
 # By default it only plans; tick "apply" to deploy. One-time setup: see infra/README.md.
 
 on:
@@ -33,9 +33,6 @@ jobs:
   deploy:
     runs-on: ubuntu-latest
     environment: production
-    permissions:
-      contents: read
-      id-token: write
     steps:
       - uses: actions/checkout@v7
 
@@ -44,12 +41,13 @@ jobs:
       - name: Format check
         run: terraform fmt -check -recursive
 
-      # Local act runs (scripts/act/run_release.sh) have no OIDC token or AWS access, so the
-      # AWS-dependent steps are skipped there and only fmt/init/validate run.
+      # Local act runs (scripts/act/run_release.sh) have no AWS secrets, so the AWS-dependent
+      # steps are skipped there and only fmt/init/validate run.
       - uses: aws-actions/configure-aws-credentials@v6
         if: env.ACT != 'true'
         with:
-          role-to-assume: ${{ vars.AWS_RELEASE_ROLE_ARN }}
+          aws-access-key-id: ${{ secrets.AWS_ACCESS_KEY_ID }}
+          aws-secret-access-key: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
           aws-region: ${{ env.AWS_REGION }}
 
       # Under act there is no AWS access, so init skips the S3 backend (ACT is set by act).

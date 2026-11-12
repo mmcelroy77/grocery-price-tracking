@@ -1,7 +1,7 @@
-# One-time setup, applied locally with admin credentials. Creates what the GitHub Actions
-# pipeline needs before it can run: a Terraform state bucket, the GitHub OIDC identity
-# provider, and an IAM role. This config keeps its own local state (infra/bootstrap/terraform.tfstate,
-# gitignored); keep that file, or re-import the resources if it is lost.
+# One-time setup, applied locally with admin credentials: the S3 bucket holding Terraform state for ../ and
+# the IAM user the release workflow runs as. Keeps its own local state (gitignored; keep the file or
+# re-import). The user's access key is created by hand (see ../README.md) so it stays out of state.
+# GitHub OIDC would avoid long-lived keys but an SCP blocks it on the Free plan (see git history, 2c161b3).
 
 terraform {
   required_version = ">= 1.6"
@@ -29,16 +29,14 @@ provider "aws" {
 data "aws_caller_identity" "current" {}
 
 locals {
-  account_id        = data.aws_caller_identity.current.account_id
-  state_bucket_name = "${var.project}-${local.account_id}-tfstate"
-  data_bucket_name  = "${var.project}-${local.account_id}-data"
-  oidc_url          = "token.actions.githubusercontent.com"
+  account_id       = data.aws_caller_identity.current.account_id
+  data_bucket_name = "${var.project}-${local.account_id}-data"
 }
 
-# --- Terraform state bucket ---
+# --- Terraform state bucket (name must match the backend in ../main.tf) ---
 
 resource "aws_s3_bucket" "tfstate" {
-  bucket = local.state_bucket_name
+  bucket = "${var.project}-${local.account_id}-tfstate"
 }
 
 resource "aws_s3_bucket_public_access_block" "tfstate" {
@@ -56,44 +54,11 @@ resource "aws_s3_bucket_versioning" "tfstate" {
   }
 }
 
-# --- GitHub OIDC: lets workflows get short-lived AWS credentials without stored keys ---
+# --- Release user: used by .github/workflows/release.yml (key stored as GitHub environment secrets) ---
+# Scoped to this project's resources. Add statements when infra/ manages new kinds of resources.
 
-resource "aws_iam_openid_connect_provider" "github" {
-  url            = "https://${local.oidc_url}"
-  client_id_list = ["sts.amazonaws.com"]
-}
-
-# Only this repo's jobs that run in the GitHub environment (the OIDC `sub` claim) may assume the role.
-data "aws_iam_policy_document" "trust" {
-  statement {
-    actions = ["sts:AssumeRoleWithWebIdentity"]
-
-    principals {
-      type        = "Federated"
-      identifiers = [aws_iam_openid_connect_provider.github.arn]
-    }
-
-    condition {
-      test     = "StringEquals"
-      variable = "${local.oidc_url}:aud"
-      values   = ["sts.amazonaws.com"]
-    }
-
-    condition {
-      test     = "StringEquals"
-      variable = "${local.oidc_url}:sub"
-      values   = ["repo:${var.github_repo}:environment:${var.github_environment}"]
-    }
-  }
-}
-
-# --- Release role: used by .github/workflows/release.yml, behind the GitHub environment approval. ---
-# Scoped to this project's resources (names must match infra/main.tf). Add statements here when infra/ starts managing new
-# kinds of resources (otherwise the pipeline gets AccessDenied).
-
-resource "aws_iam_role" "release" {
-  name               = "${var.project}-github-release"
-  assume_role_policy = data.aws_iam_policy_document.trust.json
+resource "aws_iam_user" "release" {
+  name = "${var.project}-github-release"
 }
 
 data "aws_iam_policy_document" "release" {
@@ -119,8 +84,8 @@ data "aws_iam_policy_document" "release" {
   }
 }
 
-resource "aws_iam_role_policy" "release" {
+resource "aws_iam_user_policy" "release" {
   name   = "release"
-  role   = aws_iam_role.release.id
+  user   = aws_iam_user.release.name
   policy = data.aws_iam_policy_document.release.json
 }

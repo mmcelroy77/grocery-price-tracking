@@ -15,15 +15,3 @@ variable "aws_profile" {
   type        = string
   default     = null
 }
-
-variable "github_repo" {
-  description = "GitHub repository (owner/name) allowed to assume the pipeline roles."
-  type        = string
-  default     = "mmcelroy77/grocery-price-tracking"
-}
-
-variable "github_environment" {
-  description = "GitHub environment whose jobs may assume the release role (set required reviewers on it)."
-  type        = string
-  default     = "production"
-}

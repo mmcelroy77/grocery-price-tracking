@@ -75,5 +75,5 @@ cat <<'MSG'
 Next (interactive, so not automated here):
   aws configure sso && aws sso login     # AWS credentials
   databricks auth login --host <workspace-url>
-  cd infra && terraform init && terraform plan
+  terraform -chdir=infra init && terraform -chdir=infra plan
 MSG
