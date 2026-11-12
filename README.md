@@ -71,8 +71,9 @@ Before adding a GitHub Actions build pipeline, you can validate it locally:
 - **Static checks**: the pre-commit `actionlint` hook lints `.github/workflows/*.yml` locally (catches YAML, action reference, and expression errors before anything runs).
 - **Full local run**: [`act`](https://github.com/nektos/act) runs your workflows in Docker containers that mirror the GitHub-hosted runners:
   ```bash
-  bash scripts/act/install_act.sh      # Docker + act
-  bash scripts/act/run_act.sh -j test  # run the "test" job locally
+  bash scripts/act/install_act.sh        # Docker + act
+  bash scripts/act/run_build.sh -j test  # build workflow: run the "test" job locally
+  bash scripts/act/run_release.sh        # release workflow: terraform fmt/init/validate only (no AWS or OIDC under act)
   ```
 
 `act` needs Docker running (Docker Desktop on macOS/Windows, Docker Engine on Linux/WSL) — `scripts/act/install_act.sh` installs it if missing. See the [act user guide](https://nektosact.com) for events, matrices, secrets, and inputs.
