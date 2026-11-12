@@ -14,6 +14,13 @@ repos:
         language: system
         types_or: [python, pyi, jupyter]
 
+  # Ruff's EXE rules are not enforced on WSL/Windows, so this hook covers the
+  # same ground (executable files must have a shebang) on every platform.
+  - repo: https://github.com/pre-commit/pre-commit-hooks
+    rev: v6.0.0
+    hooks:
+      - id: check-executables-have-shebangs
+
   - repo: https://github.com/rhysd/actionlint
     rev: v1.7.12
     hooks:
