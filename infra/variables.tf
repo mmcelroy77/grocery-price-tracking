@@ -7,11 +7,11 @@ variable "project" {
 variable "region" {
   description = "AWS region. Use the same one as your Databricks workspace."
   type        = string
-  default     = "us-west-2"
+  default     = "us-east-2"
 }
 
 variable "aws_profile" {
-  description = "AWS CLI profile (SSO or access keys) Terraform should use."
+  description = "AWS CLI profile Terraform should use. Null uses the default credential chain (also what CI uses)."
   type        = string
-  default     = "default"
+  default     = null
 }

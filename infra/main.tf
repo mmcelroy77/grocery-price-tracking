@@ -1,6 +1,14 @@
 terraform {
   required_version = ">= 1.6"
 
+  # State lives in the bucket created by infra/bootstrap. Locking uses an S3 lock file.
+  backend "s3" {
+    bucket       = "grocery-price-tracking-063280429352-tfstate"
+    key          = "infra/terraform.tfstate"
+    region       = "us-east-2"
+    use_lockfile = true
+  }
+
   required_providers {
     aws = {
       source  = "hashicorp/aws"
