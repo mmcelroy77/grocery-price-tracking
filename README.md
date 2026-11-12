@@ -47,7 +47,7 @@ Every script is safe to re-run; pick only the parts you want.
 | `sync_deps.sh` | Linux/macOS | `uv sync`: `.venv` + project/dev deps (rebuilds if broken) |
 | `verify.sh` | Linux/macOS | Java/PySpark check + `uv run pytest` |
 | `act/install_act.sh` | Linux/macOS | Installs Docker + [`act`](https://github.com/nektos/act) (local GitHub Actions runner) |
-| `infra/install_infra_tools.sh` | macOS | Installs Terraform, AWS CLI, and Databricks CLI (Homebrew) for deploying to AWS/Databricks |
+| `infra/install_infra_tools.sh` | Linux/macOS | Installs Terraform, AWS CLI, and Databricks CLI (apt/official installers on Linux, Homebrew on macOS) for deploying to AWS/Databricks |
 | `dev_shell.sh` | Linux/macOS | Interactive shell with venv active |
 
 Project setup scripts live in `scripts/setup/` (run as `bash scripts/setup/<name>.sh`); local CI
