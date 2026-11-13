@@ -10,6 +10,7 @@ import os
 from collections.abc import Sequence
 from dataclasses import dataclass
 
+from botocore.exceptions import NoCredentialsError
 from delta.tables import DeltaTable
 from pyspark.sql import DataFrame, SparkSession
 
@@ -42,13 +43,21 @@ def lake_root() -> str:
     data bucket, e.g. "s3a://grocery-price-tracking-<account id>-data".
 
     Raises:
-    botocore.exceptions.NoCredentialsError -- if GROCERY_LAKE_ROOT is unset and
-        no AWS credentials are configured.
+    RuntimeError -- if GROCERY_LAKE_ROOT is unset and no AWS credentials are
+        configured.
     """
     override = os.environ.get(LAKE_ROOT_ENV)
     if override:
         return override.rstrip("/")
-    return f"s3a://{PROJECT}-{get_account_id()}-data"
+    try:
+        account_id = get_account_id()
+    except NoCredentialsError:
+        raise RuntimeError(
+            "No AWS credentials found, so the S3 data bucket can't be resolved. "
+            "Sign in with `aws login` or `aws configure` (or set AWS_PROFILE), or "
+            "keep data on local disk with GROCERY_LAKE_ROOT=data/processed."
+        ) from None
+    return f"s3a://{PROJECT}-{account_id}-data"
 
 
 def lake_uri(path: str) -> str:
