@@ -1,4 +1,5 @@
 import pytest
+from botocore.exceptions import NoCredentialsError
 
 from grocery_price_tracking.common import storage
 from grocery_price_tracking.common.storage import (
@@ -34,6 +35,19 @@ def test_lake_root_env_override(monkeypatch):
     monkeypatch.setenv(storage.LAKE_ROOT_ENV, "s3a://other-bucket/")
     assert lake_root() == "s3a://other-bucket"
     assert lake_uri("/silver/prices/") == "s3a://other-bucket/silver/prices"
+
+
+def test_lake_root_explains_missing_credentials(monkeypatch):
+    monkeypatch.delenv(storage.LAKE_ROOT_ENV)
+
+    def no_credentials():
+        raise NoCredentialsError
+
+    monkeypatch.setattr(storage, "get_account_id", no_credentials)
+    with pytest.raises(RuntimeError) as excinfo:
+        lake_root()
+    message = str(excinfo.value)
+    assert "aws login" in message and "GROCERY_LAKE_ROOT=data/processed" in message
 
 
 def test_read_csv_infers_types(spark, tmp_path):
