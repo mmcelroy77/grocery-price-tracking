@@ -6,7 +6,11 @@ build-backend = "setuptools.build_meta"
 name = "grocery-price-tracking"
 version = "0.1.0"
 requires-python = ">=3.10"
-dependencies = ["pyspark==4.1.0"]
+dependencies = [
+    "boto3>=1.44.2",
+    "delta-spark==4.4.1",
+    "pyspark==4.1.0",
+]
 
 [project.scripts]
 gpt-sample = "grocery_price_tracking.jobs.sample_job:main"
@@ -27,6 +31,35 @@ testpaths = ["tests"]
 [tool.ruff]
 line-length = 88
 exclude = ["__pycache__", ".venv", "*.pyc", "*.pyo", "dist/", "build/", "*.egg-info/"]
+
+[tool.ruff.lint]
+# Defaults (E4, E7, E9, F) plus docstrings in PEP 257 style:
+#     """Summary line.
+#
+#     Arguments:
+#     name -- description
+#
+#     Returns:
+#     description
+#
+#     Raises:
+#     Error -- when it is raised
+#     """
+# D = pydocstyle: every module, class and function has a well-formed docstring.
+# DOC201/202/402/403 = pydoclint: Returns/Yields sections match the body. Ruff can't
+# parse "Error -- ..." entries or check the Arguments list in this style, so keeping
+# those complete is up to review. DOC rules are preview-only; explicit-preview-rules
+# enables just the codes listed by name, not any other preview rule.
+preview = true
+explicit-preview-rules = true
+extend-select = ["D", "DOC201", "DOC202", "DOC402", "DOC403"]
+
+[tool.ruff.lint.pydocstyle]
+convention = "pep257"
+
+[tool.ruff.lint.per-file-ignores]
+# Tests don't need docstrings.
+"tests/**" = ["D", "DOC201", "DOC402"]
 
 [tool.coverage.report]
 # Hide files with no statements (empty __init__.py) from the report.

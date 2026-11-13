@@ -5,7 +5,8 @@ PySpark project that runs locally in WSL.
 ## Layout
 ```
 src/grocery_price_tracking/
-  spark.py          # SparkSession factory (one place for config)
+  spark.py          # SparkSession factory (one place for config; Delta always on)
+  common/           # shared helpers: aws_auth.py (credentials -> S3A), storage.py (read/write)
   transforms/       # pure DataFrame -> DataFrame logic (unit-tested)
   jobs/             # entry points: read input, call transforms, write output
 tests/              # pytest, shared `spark` fixture in conftest.py
@@ -63,6 +64,16 @@ gpt-sample        # or: python -m grocery_price_tracking.jobs.sample_job
 pytest
 ```
 Or from any Ubuntu shell in the project, without activating: `uv run gpt-sample`, `uv run pytest`.
+
+Jobs write Delta tables by path only (e.g. `sample/avg_price_by_item`); `common/storage.py`
+resolves where that lives. By default that's the S3 data bucket for your AWS account
+(`s3a://grocery-price-tracking-<account id>-data`), using whatever credentials the AWS CLI would
+(`aws login`, `aws configure`, SSO, env vars; set `AWS_PROFILE` for a non-default profile).
+To keep everything on local disk instead:
+```bash
+GROCERY_LAKE_ROOT=data/processed gpt-sample
+```
+The first S3 run downloads `hadoop-aws` and the AWS SDK bundle (~600 MB) into `~/.ivy2.5.2`.
 
 ## Local CI (before you push a build pipeline)
 

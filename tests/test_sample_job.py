@@ -1,28 +1,27 @@
 import runpy
-import sys
 from unittest.mock import MagicMock
 
-import pytest
+from grocery_price_tracking.common.storage import lake_uri, read_delta
 
 
-@pytest.fixture
-def prices_csv(tmp_path):
-    path = tmp_path / "prices.csv"
-    path.write_text("item,price\nmilk,3.0\nmilk,4.0\neggs,5.0\n")
-    return path
-
-
-def test_sample_job_main(spark, prices_csv, monkeypatch, capsys):
+def test_sample_job_main(spark, monkeypatch, capsys):
+    # Reads the committed data/raw/prices.csv; writes under the temp lake root.
     # Wrap the shared session so the job's spark.stop() doesn't kill it for other tests.
     job_spark = MagicMock(wraps=spark)
     job_spark.stop = MagicMock()
     monkeypatch.setattr(
         "grocery_price_tracking.spark.get_spark", lambda _name: job_spark
     )
-    monkeypatch.setattr(sys, "argv", ["sample_job", "--input", str(prices_csv)])
 
     # run_name="__main__" also covers the `if __name__ == "__main__"` guard.
-    runpy.run_module("grocery_price_tracking.jobs.sample_job", run_name="__main__")
+    job = runpy.run_module(
+        "grocery_price_tracking.jobs.sample_job", run_name="__main__"
+    )
 
-    assert "milk" in capsys.readouterr().out
+    out = capsys.readouterr().out
+    assert "milk" in out
+    uri = lake_uri(job["OUTPUT"])
+    assert "Wrote 2 rows" in out and f"to {uri} as version 0" in out
     job_spark.stop.assert_called_once()
+    rows = read_delta(spark, uri).orderBy("item").collect()
+    assert [(r.item, r.avg_price) for r in rows] == [("eggs", 4.99), ("milk", 3.46)]
