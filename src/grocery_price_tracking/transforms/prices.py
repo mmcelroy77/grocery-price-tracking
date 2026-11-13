@@ -5,6 +5,15 @@ from pyspark.sql import functions as F
 
 
 def avg_price_by_item(df: DataFrame) -> DataFrame:
+    """Summarize prices per item.
+
+    Arguments:
+    df -- price observations with at least "item" and "price" columns.
+
+    Returns:
+    one row per item, sorted by item, with columns item, avg_price (rounded to
+    2 decimals), min_price and max_price.
+    """
     return (
         df.groupBy("item")
         .agg(
