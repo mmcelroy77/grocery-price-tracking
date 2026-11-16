@@ -1,3 +1,5 @@
+import datetime as dt
+
 import pytest
 from botocore.exceptions import NoCredentialsError
 
@@ -96,3 +98,40 @@ def test_write_delta_append_partitioned(spark, tmp_path):
     assert [tuple(r) for r in rows] == [("eggs", "b"), ("milk", "a")]
     assert (stats.version, stats.num_rows, stats.num_files) == (1, 1, 1)
     assert (tmp_path / "t" / "store=a").is_dir()
+
+
+def test_write_delta_replace_where_rewrites_only_that_day(spark, tmp_path):
+    uri = str(tmp_path / "t")
+    columns = ["captured_date", "item"]
+    yesterday, today = dt.date(2026, 11, 14), dt.date(2026, 11, 15)
+    write_delta(
+        spark.createDataFrame([(yesterday, "milk"), (today, "milk")], columns),
+        uri,
+        partition_by=["captured_date"],
+    )
+
+    stats = write_delta(
+        spark.createDataFrame([(today, "bread"), (today, "eggs")], columns),
+        uri,
+        partition_by=["captured_date"],
+        replace_where="captured_date = DATE '2026-11-15'",
+    )
+
+    rows = read_delta(spark, uri).collect()
+    assert sorted(tuple(row) for row in rows) == [
+        (yesterday, "milk"),
+        (today, "bread"),
+        (today, "eggs"),
+    ]
+    assert (stats.version, stats.num_rows) == (1, 2)
+
+
+def test_write_delta_replace_where_needs_overwrite(spark, tmp_path):
+    df = spark.createDataFrame([("2026-11-15",)], ["captured_date"])
+    with pytest.raises(ValueError, match='mode="overwrite"'):
+        write_delta(
+            df,
+            str(tmp_path / "t"),
+            mode="append",
+            replace_where="captured_date = '2026-11-15'",
+        )

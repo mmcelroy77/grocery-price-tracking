@@ -122,6 +122,7 @@ def write_delta(
     *,
     mode: str = "overwrite",
     partition_by: Sequence[str] = (),
+    replace_where: str | None = None,
 ) -> WriteStats:
     """Write a DataFrame as a Delta table and return what the write added.
 
@@ -133,15 +134,26 @@ def write_delta(
     mode -- "overwrite" replaces the data and schema (history is kept);
         "append" adds rows and rejects schema changes.
     partition_by -- columns to partition the table by. Empty for none.
+    replace_where -- a predicate over the partition columns. With mode
+        "overwrite", only the partitions it matches are replaced, so re-running
+        a daily snapshot rewrites that day instead of duplicating it. None
+        replaces the whole table.
 
     Returns:
     row, byte and file counts for this write, and the new table version.
     """
+    if replace_where is not None and mode != "overwrite":
+        raise ValueError('replace_where needs mode="overwrite".')
     writer = df.write.format("delta").mode(mode)
-    if mode == "overwrite":
+    # Delta rejects replaceWhere together with overwriteSchema, and the
+    # partitioned columns already fix the layout, so only a full replace may
+    # change the schema.
+    if mode == "overwrite" and replace_where is None:
         writer = writer.option("overwriteSchema", "true")
     if partition_by:
         writer = writer.partitionBy(*partition_by)
+    if replace_where is not None:
+        writer = writer.option("replaceWhere", replace_where)
     writer.save(uri)
 
     commit = DeltaTable.forPath(df.sparkSession, uri).history(1).first()
