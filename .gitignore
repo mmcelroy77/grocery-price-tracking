@@ -11,6 +11,9 @@ coverage.xml
 htmlcov/
 reports/
 
+# Local secrets
+.env
+
 # Terraform
 .terraform/
 *.tfstate

@@ -1,0 +1,82 @@
+"""Entry point: snapshot egg-search results from one QFC store near ZIP 98012.
+
+The Kroger public API needs a free developer app. Set KROGER_CLIENT_ID and
+KROGER_CLIENT_SECRET before running. The store is resolved at runtime as the
+nearest QFC (or KROGER_CHAIN) to KROGER_STORE_ZIP, so a closed store does not
+break the job.
+
+Rows land in the Bronze table, unfiltered and grouped by day: one snapshot per
+store, search term and captured_date. Re-running on the same day replaces that
+day's snapshot instead of appending a duplicate.
+"""
+
+import json
+import os
+from datetime import date
+
+from grocery_price_tracking.common.kroger import (
+    credentials_from_env,
+    find_store,
+    get_access_token,
+    load_dotenv,
+    search_products,
+)
+from grocery_price_tracking.common.storage import lake_uri, write_delta
+from grocery_price_tracking.spark import get_spark
+from grocery_price_tracking.transforms.kroger import raw_products
+
+DEFAULT_ZIP = "98012"
+DEFAULT_CHAIN = "QFC"
+SEARCH_TERM = "eggs"
+OUTPUT = "bronze/kroger/products"
+DATE_COLUMN = "captured_date"
+
+
+def main() -> None:
+    """Snapshot one store's product search results for today into Bronze.
+
+    Prints the store, the products and the write stats. Stops the SparkSession
+    when done.
+    """
+    load_dotenv()
+    client_id, client_secret = credentials_from_env()
+    token = get_access_token(client_id, client_secret)
+    zip_code = os.environ.get("KROGER_STORE_ZIP", DEFAULT_ZIP)
+    chain = os.environ.get("KROGER_CHAIN", DEFAULT_CHAIN)
+    store = find_store(token, zip_code, chain)
+    location_id = store["locationId"]
+    store_name = store["name"]
+    products = search_products(token, SEARCH_TERM, location_id)
+    if not products:
+        raise RuntimeError(
+            f"Kroger returned no {SEARCH_TERM} products for {store_name}."
+        )
+
+    captured_date = date.today()
+    spark = get_spark("qfc-eggs-job")
+    try:
+        raw = spark.read.json(
+            spark.sparkContext.parallelize(
+                [json.dumps(product) for product in products]
+            )
+        )
+        bronze = raw_products(raw, location_id, store_name, SEARCH_TERM, captured_date)
+        print(f"{store_name} ({location_id}) near {zip_code}: {SEARCH_TERM}")
+        print(f"{len(products)} products captured for {captured_date}")
+        uri = lake_uri(OUTPUT)
+        stats = write_delta(
+            bronze,
+            uri,
+            partition_by=[DATE_COLUMN],
+            replace_where=f"{DATE_COLUMN} = DATE '{captured_date.isoformat()}'",
+        )
+        print(
+            f"Wrote {stats.num_rows} rows ({stats.num_bytes:,} bytes, "
+            f"{stats.num_files} files) to {uri} as version {stats.version}"
+        )
+    finally:
+        spark.stop()
+
+
+if __name__ == "__main__":
+    main()

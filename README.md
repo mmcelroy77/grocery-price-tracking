@@ -61,6 +61,7 @@ On macOS, [Homebrew](https://brew.sh) is installed automatically if missing (may
 In the VS Code terminal or a dev shell (`scripts\setup\dev.ps1 [-Shell]`):
 ```bash
 gpt-sample        # or: python -m grocery_price_tracking.jobs.sample_job
+gpt-eggs          # or: python -m grocery_price_tracking.jobs.qfc_eggs_job
 pytest
 ```
 Or from any Ubuntu shell in the project, without activating: `uv run gpt-sample`, `uv run pytest`.
@@ -74,6 +75,50 @@ To keep everything on local disk instead:
 GROCERY_LAKE_ROOT=data/processed gpt-sample
 ```
 The first S3 run downloads `hadoop-aws` and the AWS SDK bundle (~600 MB) into `~/.ivy2.5.2`.
+
+The session requests a 2 GB driver heap (`spark.driver.memory`) because Parquet reserves a
+row group in memory for every writer it runs in parallel. Override it with
+`SPARK_DRIVER_MEMORY` (e.g. `SPARK_DRIVER_MEMORY=4g`) on machines with many cores or for
+larger writes.
+
+## QFC egg search snapshots near 98012
+
+`gpt-eggs` snapshots the product search results behind egg prices for the nearest
+QFC to ZIP 98012 using the [Kroger public API](https://developer.kroger.com) (QFC
+is a Kroger chain). Every product the search returns is kept, unfiltered, in the
+Bronze table `bronze/kroger/products`. The store is resolved at runtime, so a
+closed or renamed store does not break the job.
+
+One-time setup:
+
+1. Create a free app at <https://developer.kroger.com> with the Products and Locations APIs.
+2. Copy `.env.example` to `.env` and fill in the two values:
+   ```bash
+   cp .env.example .env
+   ```
+   `.env` is ignored by git, and the job reads it from the project root. Real
+   environment variables win, so CI should set `KROGER_CLIENT_ID` and
+   `KROGER_CLIENT_SECRET` as secrets instead of using a file. You can also export
+   them directly:
+   ```bash
+   export KROGER_CLIENT_ID=...
+   export KROGER_CLIENT_SECRET=...
+   ```
+   In PowerShell use `$env:KROGER_CLIENT_ID = "..."` and `$env:KROGER_CLIENT_SECRET = "..."`.
+3. Run `gpt-eggs` (or `uv run gpt-eggs`).
+
+Optional settings: `KROGER_STORE_ZIP` (default `98012`) and `KROGER_CHAIN` (default `QFC`;
+use `FREDMEYER` for a Fred Meyer store).
+
+Each run writes one snapshot per store, search term and day to
+`bronze/kroger/products`, partitioned by `captured_date`
+(`bronze/kroger/products/captured_date=YYYY-MM-DD/`). Rows carry `store_location_id`,
+`store_name`, `search_term` and `captured_date` alongside the API payload, so price
+changes can be compared across days. Re-running on the same day replaces that day's
+partition instead of appending a duplicate snapshot.
+
+Egg filtering and effective-price calculation are the Silver step
+(`egg_prices` in `transforms/kroger.py`); the job does not write Silver yet.
 
 ## Local CI (before you push a build pipeline)
 
