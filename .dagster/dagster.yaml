@@ -1,0 +1,3 @@
+# Dagster instance config. Empty on purpose: the defaults (SQLite run history,
+# logs and schedules stored next to this file in the git-ignored .dagster/ folder)
+# are what we want locally. Without this file Dagster warns on every start.
