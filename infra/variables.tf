@@ -15,3 +15,9 @@ variable "aws_profile" {
   type        = string
   default     = null
 }
+
+variable "image_tag" {
+  description = "Tag of the job image in ECR that the task definition runs."
+  type        = string
+  default     = "latest"
+}
