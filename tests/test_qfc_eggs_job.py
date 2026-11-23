@@ -1,4 +1,5 @@
 import runpy
+import sys
 from datetime import date
 from unittest.mock import MagicMock
 
@@ -50,8 +51,12 @@ PRODUCTS = [
 ]
 
 
-def mock_job(spark, monkeypatch, products=PRODUCTS):
-    """Run the job with a wrapped session and stubbed Kroger calls."""
+def mock_job(spark, monkeypatch, products=PRODUCTS, run_name="__main__"):
+    """Run the job with a wrapped session and stubbed Kroger calls.
+
+    The default run_name runs main(), like `gpt-eggs`. Any other name only loads the
+    module, so a test can call job["run"]() itself.
+    """
     # Wrap the shared session so the job's spark.stop() doesn't kill it for other tests.
     job_spark = MagicMock(wraps=spark)
     job_spark.stop = MagicMock()
@@ -72,9 +77,10 @@ def mock_job(spark, monkeypatch, products=PRODUCTS):
     monkeypatch.setattr(
         kroger, "search_products", lambda _token, _term, _location_id: products
     )
-    job = runpy.run_module(
-        "grocery_price_tracking.jobs.qfc_eggs_job", run_name="__main__"
-    )
+    # Other tests import the module; runpy warns if it is already loaded.
+    name = "grocery_price_tracking.jobs.qfc_eggs_job"
+    monkeypatch.delitem(sys.modules, name, raising=False)
+    job = runpy.run_module(name, run_name=run_name)
     return job, job_spark
 
 
@@ -100,6 +106,14 @@ def test_qfc_eggs_job_writes_todays_bronze_snapshot(spark, monkeypatch, capsys):
     assert {row.store_name for row in rows} == {"QFC Test Store"}
     assert {row.search_term for row in rows} == {"eggs"}
     assert {row.captured_date for row in rows} == {captured}
+
+
+def test_run_returns_the_write_stats(spark, monkeypatch):
+    job, _ = mock_job(spark, monkeypatch, run_name="qfc_eggs_job")
+
+    stats = job["run"]()
+
+    assert (stats.version, stats.num_rows) == (0, 3)
 
 
 def test_qfc_eggs_job_partitions_by_captured_date(spark, monkeypatch, lake_root):

@@ -9,6 +9,7 @@ src/grocery_price_tracking/
   common/           # shared helpers: aws_auth.py (credentials -> S3A), storage.py (read/write)
   transforms/       # pure DataFrame -> DataFrame logic (unit-tested)
   jobs/             # entry points: read input, call transforms, write output
+  orchestration/    # Dagster definitions: the jobs as assets (retries, run metadata)
 tests/              # pytest, shared `spark` fixture in conftest.py
 data/raw/           # input data
 scripts/
@@ -119,6 +120,29 @@ partition instead of appending a duplicate snapshot.
 
 Egg filtering and effective-price calculation are the Silver step
 (`egg_prices` in `transforms/kroger.py`); the job does not write Silver yet.
+
+## Dagster
+
+[Dagster](https://dagster.io) wraps the jobs as *assets*: `kroger_bronze_products` runs the egg
+snapshot above, retries it twice if it fails (after 1 and 2 minutes), and records what it wrote
+(table location, Delta version, rows, bytes, files). The definitions are in
+`orchestration/definitions.py`, and `[tool.dagster]` in `pyproject.toml` points Dagster at them.
+
+Open the UI, then click **Materialize** on the asset (it reads `.env` like `gpt-eggs` does):
+```bash
+export DAGSTER_HOME=$PWD/.dagster      # keeps run history in a git-ignored folder
+uv run dagster dev                     # http://localhost:3000
+```
+Or run it once without the UI:
+```bash
+uv run dagster asset materialize -m grocery_price_tracking.orchestration.definitions \
+    --select kroger_bronze_products
+```
+Add `GROCERY_LAKE_ROOT=data/processed` to either command to write to local disk instead of S3.
+`.dagster/dagster.yaml` is the instance config (committed, so Dagster doesn't warn about a
+missing one); the run history next to it is git-ignored. Dagster prints a one-time telemetry
+notice when it first creates `DAGSTER_HOME`; add `telemetry: {enabled: false}` to
+`.dagster/dagster.yaml` to opt out.
 
 ## Local CI (before you push a build pipeline)
 

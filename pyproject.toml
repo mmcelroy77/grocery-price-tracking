@@ -5,9 +5,10 @@ build-backend = "setuptools.build_meta"
 [project]
 name = "grocery-price-tracking"
 version = "0.1.0"
-requires-python = ">=3.10"
+requires-python = ">=3.11"
 dependencies = [
     "boto3[crt]>=1.44.2",
+    "dagster>=1.13.31",
     "delta-spark==4.4.1",
     "pyspark==4.1.0",
 ]
@@ -18,7 +19,18 @@ gpt-eggs = "grocery_price_tracking.jobs.qfc_eggs_job:main"
 
 # uv installs the "dev" group by default on `uv sync`
 [dependency-groups]
-dev = ["pytest>=8", "coverage", "pytest-cov", "pre-commit>=4", "ruff==0.17.4"]
+dev = [
+    "pytest>=8",
+    "coverage",
+    "pytest-cov",
+    "pre-commit>=4",
+    "ruff==0.17.4",
+    "dagster-webserver>=1.13.31",
+]
+
+# Tells `dagster dev` / `dagster asset materialize` where the definitions live.
+[tool.dagster]
+module_name = "grocery_price_tracking.orchestration.definitions"
 
 [tool.setuptools.packages.find]
 where = ["src"]

@@ -21,7 +21,7 @@ from grocery_price_tracking.common.kroger import (
     load_dotenv,
     search_products,
 )
-from grocery_price_tracking.common.storage import lake_uri, write_delta
+from grocery_price_tracking.common.storage import WriteStats, lake_uri, write_delta
 from grocery_price_tracking.spark import get_spark
 from grocery_price_tracking.transforms.kroger import raw_products
 
@@ -32,11 +32,18 @@ OUTPUT = "bronze/kroger/products"
 DATE_COLUMN = "captured_date"
 
 
-def main() -> None:
+def run() -> WriteStats:
     """Snapshot one store's product search results for today into Bronze.
 
     Prints the store, the products and the write stats. Stops the SparkSession
-    when done.
+    when done. The Dagster asset (see orchestration.definitions) calls this too.
+
+    Returns:
+    the stats of the Bronze write.
+
+    Raises:
+    KrogerError -- if the Kroger credentials are missing or the API cannot be used.
+    RuntimeError -- if the search returns no products.
     """
     load_dotenv()
     client_id, client_secret = credentials_from_env()
@@ -74,8 +81,14 @@ def main() -> None:
             f"Wrote {stats.num_rows} rows ({stats.num_bytes:,} bytes, "
             f"{stats.num_files} files) to {uri} as version {stats.version}"
         )
+        return stats
     finally:
         spark.stop()
+
+
+def main() -> None:
+    """Run the job from the command line (the gpt-eggs script)."""
+    run()
 
 
 if __name__ == "__main__":

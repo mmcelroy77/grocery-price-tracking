@@ -6,6 +6,9 @@ spark-warehouse/
 metastore_db/
 derby.log
 data/processed/
+# Dagster run history and logs; only the instance config is tracked.
+.dagster/*
+!.dagster/dagster.yaml
 .coverage
 coverage.xml
 htmlcov/
