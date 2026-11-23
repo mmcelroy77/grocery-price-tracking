@@ -12,6 +12,7 @@ src/grocery_price_tracking/
   orchestration/    # Dagster definitions: the jobs as assets (retries, run metadata)
 tests/              # pytest, shared `spark` fixture in conftest.py
 data/raw/           # input data
+infra/              # Terraform for AWS (architecture diagram in infra/README.md)
 scripts/
   setup/            # project setup (see below)
   act/              # local CI: act + actionlint
