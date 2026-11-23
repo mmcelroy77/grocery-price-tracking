@@ -144,6 +144,36 @@ missing one); the run history next to it is git-ignored. Dagster prints a one-ti
 notice when it first creates `DAGSTER_HOME`; add `telemetry: {enabled: false}` to
 `.dagster/dagster.yaml` to opt out.
 
+## Container image
+
+The `Dockerfile` packages the project to run one Dagster asset and exit, which is how it will
+run in AWS. It contains Java 21, Python 3.12, the project's dependencies (the Dagster CLI but
+not its web UI) and the Spark jars, so a run doesn't download ~600 MB. It runs as a non-root
+user. Secrets are never baked in: `.dockerignore` keeps `.env` out of the build, and you pass
+credentials when you run it.
+
+```bash
+docker build -t grocery-price-tracking .       # ~4 minutes the first time
+```
+
+Run it on local disk (Kroger credentials from `.env`, output inside the container):
+```bash
+docker run --rm --env-file .env -e GROCERY_LAKE_ROOT=/tmp/lake grocery-price-tracking
+```
+Run it against the S3 data bucket, passing your current AWS credentials through the environment
+(`aws login`, SSO and static keys all work; nothing is written to disk):
+```bash
+eval "$(aws configure export-credentials --format env)"
+docker run --rm --env-file .env -e AWS_ACCESS_KEY_ID -e AWS_SECRET_ACCESS_KEY -e AWS_SESSION_TOKEN \
+    grocery-price-tracking
+```
+The entrypoint is `dagster asset materialize -m grocery_price_tracking.orchestration.definitions`
+and the default argument is `--select kroger_bronze_products`, so another asset is just
+`docker run ... grocery-price-tracking --select <asset>`.
+
+The image is large (about 2.6 GB uncompressed, 1.4 GB of it Spark jars) because Spark needs the
+Delta and S3 jars on disk. The build runs in the Build workflow and is skipped under `act`.
+
 ## Local CI (before you push a build pipeline)
 
 Before adding a GitHub Actions build pipeline, you can validate it locally:

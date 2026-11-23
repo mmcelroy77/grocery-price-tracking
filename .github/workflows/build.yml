@@ -44,6 +44,18 @@ jobs:
             --cov-report=html:reports/htmlcov \
             --cov-fail-under=100
 
+      # The job image (Dockerfile) must keep building and loading the Dagster definitions.
+      # Skipped under act: its runner container has no Docker daemon.
+      - name: Build job image
+        if: env.ACT != 'true'
+        run: docker build -t grocery-price-tracking .
+
+      - name: Smoke-test job image
+        if: env.ACT != 'true'
+        run: |
+          docker run --rm --entrypoint dagster grocery-price-tracking \
+            definitions validate -m grocery_price_tracking.orchestration.definitions
+
       - name: Publish summary
         if: always()
         run: |

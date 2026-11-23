@@ -1,0 +1,21 @@
+# Only pyproject.toml, uv.lock, uv.toml and src/ go into the image (see Dockerfile).
+# This keeps the build context small and, above all, keeps .env (secrets) out of it.
+.env
+.git
+.venv
+.dagster
+.tmp_dagster_home_*
+.github
+.vscode
+data
+infra
+scripts
+tests
+reports
+htmlcov
+.coverage
+coverage.xml
+**/__pycache__
+*.pyc
+.pytest_cache
+.ruff_cache
