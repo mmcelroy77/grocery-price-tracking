@@ -2,7 +2,9 @@ name: Release
 
 # Manual for now: run it from the Actions tab. The job runs in the "production" environment, so required
 # reviewers must approve each run, and only then are that environment's AWS secrets released to it.
-# By default it only plans; tick "apply" to deploy. One-time setup: see infra/README.md.
+# By default it only plans; tick "apply" to deploy. Applying also builds the job image from the Dockerfile
+# and pushes it to ECR tagged with the commit SHA; the plan points the task definition at that tag.
+# One-time setup: see infra/README.md.
 
 on:
   workflow_dispatch:
@@ -33,10 +35,16 @@ jobs:
   deploy:
     runs-on: ubuntu-latest
     environment: production
+    env:
+      # Terraform reads this as var.image_tag: the task definition runs the image pushed below.
+      TF_VAR_image_tag: ${{ github.sha }}
     steps:
       - uses: actions/checkout@v7
 
+      # No wrapper, so `terraform output -raw` below returns just the value.
       - uses: hashicorp/setup-terraform@v4
+        with:
+          terraform_wrapper: false
 
       - name: Format check
         run: terraform fmt -check -recursive
@@ -68,6 +76,20 @@ jobs:
             terraform show -no-color tfplan
             echo '```'
           } >> "$GITHUB_STEP_SUMMARY"
+
+      # The image goes up before the apply, so the task definition never points at a missing tag.
+      # Needs the ECR repository to exist already: on a brand-new account, apply once locally first
+      # (see infra/README.md). Skipped under act, whose runner container has no Docker daemon.
+      - name: Build and push the job image
+        if: inputs.apply && env.ACT != 'true'
+        working-directory: .
+        run: |
+          repo="$(terraform -chdir=infra output -raw ecr_repository_url)"
+          aws ecr get-login-password --region "$AWS_REGION" |
+            docker login --username AWS --password-stdin "${repo%%/*}"
+          docker build -t "$repo:$GITHUB_SHA" .
+          docker push "$repo:$GITHUB_SHA"
+          echo "Pushed image \`$repo:$GITHUB_SHA\`" >> "$GITHUB_STEP_SUMMARY"
 
       - name: Apply
         if: inputs.apply && env.ACT != 'true'
