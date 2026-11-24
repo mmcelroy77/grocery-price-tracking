@@ -30,3 +30,8 @@ output "task_network_configuration" {
 output "log_group_name" {
   value = aws_cloudwatch_log_group.job.name
 }
+
+output "schedule_name" {
+  description = "The daily schedule that starts the job (EventBridge Scheduler)."
+  value       = aws_scheduler_schedule.job.name
+}
