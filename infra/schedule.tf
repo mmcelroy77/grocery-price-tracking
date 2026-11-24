@@ -1,6 +1,15 @@
 # Runs the job every day: EventBridge Scheduler starts one Fargate task from the task definition in
 # jobs.tf. Running the job twice in a day is harmless: the Bronze write replaces that day's partition.
 
+locals {
+  # The task definition without a revision number, so the schedule always runs the newest revision.
+  # Built from the family, which is a configured value and so known at plan time, instead of using the
+  # resource's own `arn_without_revision`: that is only known after apply, and the resource is replaced
+  # on every Release with a new commit, so the plan would list spurious "changes" to the schedule and
+  # its role policy every time. Using the family keeps the dependency on the task definition.
+  job_task_definition_family_arn = "arn:aws:ecs:${var.region}:${data.aws_caller_identity.current.account_id}:task-definition/${aws_ecs_task_definition.job.family}"
+}
+
 # Lets Scheduler start the task, and nothing else.
 data "aws_iam_policy_document" "scheduler_assume" {
   statement {
@@ -26,10 +35,9 @@ data "aws_iam_policy_document" "job_scheduler" {
   statement {
     sid     = "RunJob"
     actions = ["ecs:RunTask"]
-    # The schedule names the task definition without a revision, so it always runs the newest one.
     resources = [
-      aws_ecs_task_definition.job.arn_without_revision,
-      "${aws_ecs_task_definition.job.arn_without_revision}:*",
+      local.job_task_definition_family_arn,
+      "${local.job_task_definition_family_arn}:*",
     ]
     condition {
       test     = "ArnEquals"
@@ -76,7 +84,7 @@ resource "aws_scheduler_schedule" "job" {
     ecs_parameters {
       # No revision number: ECS runs the newest ACTIVE revision, so a Release that pushes a new
       # image is picked up by the next run without changing the schedule.
-      task_definition_arn = aws_ecs_task_definition.job.arn_without_revision
+      task_definition_arn = local.job_task_definition_family_arn
       launch_type         = "FARGATE"
       task_count          = 1
 

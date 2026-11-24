@@ -19,6 +19,8 @@ reports/
 
 # Terraform
 .terraform/
+tfplan
+tfplan.*
 *.tfstate
 *.tfstate.*
 *.tfvars

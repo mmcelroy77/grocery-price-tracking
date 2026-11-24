@@ -65,17 +65,17 @@ jobs:
       - name: Validate
         run: terraform validate
 
+      # The job summary (see scripts/ci/release_summary.py) shows the commit, a table of the changes and,
+      # after an apply, the image and what is live.
       - name: Plan
         if: env.ACT != 'true'
+        env:
+          APPLY: ${{ inputs.apply }}
         run: |
           terraform plan -out=tfplan
-          {
-            echo "## Terraform plan"
-            echo
-            echo '```'
-            terraform show -no-color tfplan
-            echo '```'
-          } >> "$GITHUB_STEP_SUMMARY"
+          terraform show -json tfplan > tfplan.json
+          terraform show -no-color tfplan > tfplan.txt
+          python3 "$GITHUB_WORKSPACE/scripts/ci/release_summary.py" plan tfplan.json tfplan.txt
 
       # The image goes up before the apply, so the task definition never points at a missing tag.
       # Needs the ECR repository to exist already: on a brand-new account, apply once locally first
@@ -92,8 +92,19 @@ jobs:
           repo="$(terraform -chdir=infra output -raw ecr_repository_url)"
           docker build -t "$repo:$GITHUB_SHA" .
           docker push "$repo:$GITHUB_SHA"
-          echo "Pushed image \`$repo:$GITHUB_SHA\`" >> "$GITHUB_STEP_SUMMARY"
+          # The summary is only a report: it must never stop the deploy after the push, so a missing
+          # digest or a failing script is a warning, not an error.
+          digest="$(docker inspect --format '{{index .RepoDigests 0}}' "$repo:$GITHUB_SHA" 2>/dev/null || true)"
+          python3 scripts/ci/release_summary.py image "$repo" "$GITHUB_SHA" "$digest" ||
+            echo "::warning::Could not write the image summary"
 
       - name: Apply
         if: inputs.apply && env.ACT != 'true'
         run: terraform apply tfplan
+
+      # Only a report: if it fails, the apply above still succeeded, so the run must not turn red.
+      - name: Summarize the deployment
+        if: inputs.apply && env.ACT != 'true'
+        continue-on-error: true
+        working-directory: .
+        run: python3 scripts/ci/release_summary.py deployed infra/tfplan.json

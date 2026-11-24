@@ -149,7 +149,9 @@ with its images), then delete the two SSM parameters by hand.
 ## Day to day
 
 Run **Release** from the GitHub Actions tab (**Run workflow**) and approve the `production` deployment.
-The plan appears in the job summary. The run only plans unless **apply** is ticked.
+The job summary shows the commit, a table of what the plan changes (with the full plan collapsed under it)
+and, after an apply, the pushed image and what is live: the task definition revision and the schedule's state.
+The run only plans unless **apply** is ticked.
 
 Ticking **apply** also builds the job image from the `Dockerfile` and pushes it to ECR tagged with the commit
 SHA (the build and upload take several minutes), then applies the plan, which points the task definition at
