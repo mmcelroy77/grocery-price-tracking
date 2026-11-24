@@ -85,6 +85,7 @@ jobs:
         working-directory: .
         run: |
           repo="$(terraform -chdir=infra output -raw ecr_repository_url)"
+          echo "ECR_REGISTRY=${repo%%/*}" >> "$GITHUB_ENV" # for the logout step below
           aws ecr get-login-password --region "$AWS_REGION" |
             docker login --username AWS --password-stdin "${repo%%/*}"
           docker build -t "$repo:$GITHUB_SHA" .
@@ -94,3 +95,9 @@ jobs:
       - name: Apply
         if: inputs.apply && env.ACT != 'true'
         run: terraform apply tfplan
+
+      # `docker login` keeps the ECR token unencrypted in ~/.docker/config.json (Docker warns about it).
+      # Delete it at the end, even if an earlier step failed. Skipped if the login never happened.
+      - name: Log out of ECR
+        if: always() && env.ECR_REGISTRY != ''
+        run: docker logout "$ECR_REGISTRY"
