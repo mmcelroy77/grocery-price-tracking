@@ -102,8 +102,10 @@ Set it up once, in this order (run from the repository root):
          --query Version --output text
    )
    ```
-4. **Push the image** (about 2 GB compressed, so the first push takes several minutes; later pushes
-   only upload the changed layers):
+4. **Push the image** (about 2 GB compressed, so the first push takes several minutes). You only need this by
+   hand for the very first deploy or to try an image without a Release; after that, **Release** builds and
+   pushes it (see Day to day). A local `terraform apply` without `image_tag` points the task definition at
+   `latest`, and the next Release moves it back to the commit tag:
    ```
    REPO=$(terraform -chdir=infra output -raw ecr_repository_url)
    aws ecr get-login-password --region us-east-2 | docker login --username AWS --password-stdin "${REPO%%/*}"
@@ -132,5 +134,10 @@ with its images), then delete the two SSM parameters by hand.
 Run **Release** from the GitHub Actions tab (**Run workflow**) and approve the `production` deployment.
 The plan appears in the job summary. The run only plans unless **apply** is ticked.
 
-The release user is scoped to this project's buckets. When `infra/` starts managing other kinds of resources,
+Ticking **apply** also builds the job image from the `Dockerfile` and pushes it to ECR tagged with the commit
+SHA (the build and upload take several minutes), then applies the plan, which points the task definition at
+that exact image. So deploying a code change is one Release run, with no manual push. The pushed tag appears
+in the run's summary, and ECR keeps the 10 newest images.
+
+The release user is scoped to this project's resources. When `infra/` starts managing other kinds of resources,
 add the permissions to `bootstrap/main.tf` and apply `bootstrap` locally first.

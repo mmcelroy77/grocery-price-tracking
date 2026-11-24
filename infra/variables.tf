@@ -17,7 +17,7 @@ variable "aws_profile" {
 }
 
 variable "image_tag" {
-  description = "Tag of the job image in ECR that the task definition runs."
+  description = "Tag of the job image in ECR that the task definition runs. The Release workflow sets it to the commit SHA."
   type        = string
   default     = "latest"
 }
