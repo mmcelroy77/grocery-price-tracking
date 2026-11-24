@@ -15,7 +15,7 @@ dependencies = [
 
 [project.scripts]
 gpt-sample = "grocery_price_tracking.jobs.sample_job:main"
-gpt-eggs = "grocery_price_tracking.jobs.qfc_eggs_job:main"
+gpt-grocery = "grocery_price_tracking.jobs.qfc_grocery_job:main"
 
 # uv installs the "dev" group by default on `uv sync`
 [dependency-groups]

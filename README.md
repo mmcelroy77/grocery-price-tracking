@@ -63,7 +63,7 @@ On macOS, [Homebrew](https://brew.sh) is installed automatically if missing (may
 In the VS Code terminal or a dev shell (`scripts\setup\dev.ps1 [-Shell]`):
 ```bash
 gpt-sample        # or: python -m grocery_price_tracking.jobs.sample_job
-gpt-eggs          # or: python -m grocery_price_tracking.jobs.qfc_eggs_job
+gpt-grocery       # or: python -m grocery_price_tracking.jobs.qfc_grocery_job
 pytest
 ```
 Or from any Ubuntu shell in the project, without activating: `uv run gpt-sample`, `uv run pytest`.
@@ -83,9 +83,9 @@ row group in memory for every writer it runs in parallel. Override it with
 `SPARK_DRIVER_MEMORY` (e.g. `SPARK_DRIVER_MEMORY=4g`) on machines with many cores or for
 larger writes.
 
-## QFC egg search snapshots near 98012
+## QFC grocery snapshots near 98012
 
-`gpt-eggs` snapshots the product search results behind egg prices for the nearest
+`gpt-grocery` snapshots the product search results (eggs, milk and bread) for the nearest
 QFC to ZIP 98012 using the [Kroger public API](https://developer.kroger.com) (QFC
 is a Kroger chain). Every product the search returns is kept, unfiltered, in the
 Bronze table `bronze/kroger/products`. The store is resolved at runtime, so a
@@ -107,7 +107,7 @@ One-time setup:
    export KROGER_CLIENT_SECRET=...
    ```
    In PowerShell use `$env:KROGER_CLIENT_ID = "..."` and `$env:KROGER_CLIENT_SECRET = "..."`.
-3. Run `gpt-eggs` (or `uv run gpt-eggs`).
+3. Run `gpt-grocery` (or `uv run gpt-grocery`).
 
 Optional settings: `KROGER_STORE_ZIP` (default `98012`) and `KROGER_CHAIN` (default `QFC`;
 use `FREDMEYER` for a Fred Meyer store).
@@ -117,19 +117,21 @@ Each run writes one snapshot per store, search term and day to
 (`bronze/kroger/products/captured_date=YYYY-MM-DD/`). Rows carry `store_location_id`,
 `store_name`, `search_term` and `captured_date` alongside the API payload, so price
 changes can be compared across days. Re-running on the same day replaces that day's
-partition instead of appending a duplicate snapshot.
+partition instead of appending a duplicate snapshot. A snapshot is all or nothing: if
+any search term returns no products, nothing is written for that day.
 
 Egg filtering and effective-price calculation are the Silver step
-(`egg_prices` in `transforms/kroger.py`); the job does not write Silver yet.
+(`egg_prices` in `transforms/kroger.py`, fed only the `search_term = 'eggs'` rows); the
+job does not write Silver yet.
 
 ## Dagster
 
-[Dagster](https://dagster.io) wraps the jobs as *assets*: `kroger_bronze_products` runs the egg
+[Dagster](https://dagster.io) wraps the jobs as *assets*: `kroger_bronze_products` runs the
 snapshot above, retries it twice if it fails (after 1 and 2 minutes), and records what it wrote
 (table location, Delta version, rows, bytes, files). The definitions are in
 `orchestration/definitions.py`, and `[tool.dagster]` in `pyproject.toml` points Dagster at them.
 
-Open the UI, then click **Materialize** on the asset (it reads `.env` like `gpt-eggs` does):
+Open the UI, then click **Materialize** on the asset (it reads `.env` like `gpt-grocery` does):
 ```bash
 export DAGSTER_HOME=$PWD/.dagster      # keeps run history in a git-ignored folder
 uv run dagster dev                     # http://localhost:3000

@@ -123,6 +123,7 @@ def write_delta(
     mode: str = "overwrite",
     partition_by: Sequence[str] = (),
     replace_where: str | None = None,
+    merge_schema: bool = False,
 ) -> WriteStats:
     """Write a DataFrame as a Delta table and return what the write added.
 
@@ -138,18 +139,30 @@ def write_delta(
         "overwrite", only the partitions it matches are replaced, so re-running
         a daily snapshot rewrites that day instead of duplicating it. None
         replaces the whole table.
+    merge_schema -- add columns that are new in df to the table instead of failing
+        the write. False (the default) rejects any schema change, except that
+        mode "overwrite" without replace_where replaces the schema anyway.
 
     Returns:
     row, byte and file counts for this write, and the new table version.
+
+    Raises:
+    ValueError -- if replace_where is used without mode "overwrite", or
+        merge_schema is used for a full overwrite (which already replaces the
+        schema).
     """
     if replace_where is not None and mode != "overwrite":
         raise ValueError('replace_where needs mode="overwrite".')
+    if merge_schema and mode == "overwrite" and replace_where is None:
+        raise ValueError("merge_schema doesn't apply to a full overwrite.")
     writer = df.write.format("delta").mode(mode)
     # Delta rejects replaceWhere together with overwriteSchema, and the
     # partitioned columns already fix the layout, so only a full replace may
     # change the schema.
     if mode == "overwrite" and replace_where is None:
         writer = writer.option("overwriteSchema", "true")
+    if merge_schema:
+        writer = writer.option("mergeSchema", "true")
     if partition_by:
         writer = writer.partitionBy(*partition_by)
     if replace_where is not None:
