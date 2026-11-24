@@ -207,6 +207,8 @@ data "aws_iam_policy_document" "release_job" {
       "ec2:DescribeAccountAttributes",
       "ec2:DescribeVpcs",
       "ec2:DescribeSubnets",
+      "ec2:DescribeRouteTables",
+      "ec2:DescribeVpcAttribute",
       "ec2:DescribeSecurityGroups",
       "ec2:DescribeSecurityGroupRules",
       "ec2:DescribeNetworkInterfaces",
