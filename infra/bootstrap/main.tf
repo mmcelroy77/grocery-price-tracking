@@ -197,8 +197,21 @@ data "aws_iam_policy_document" "release_job" {
     condition {
       test     = "StringEquals"
       variable = "iam:PassedToService"
-      values   = ["ecs-tasks.amazonaws.com"]
+      # ECS tasks use the execution and task roles. Scheduler uses the scheduler role.
+      values = ["ecs-tasks.amazonaws.com", "scheduler.amazonaws.com"]
     }
+  }
+
+  # The daily schedule (infra/schedule.tf). Only schedules named <project>-job-*.
+  statement {
+    sid = "Schedule"
+    actions = [
+      "scheduler:CreateSchedule",
+      "scheduler:UpdateSchedule",
+      "scheduler:DeleteSchedule",
+      "scheduler:GetSchedule",
+    ]
+    resources = ["arn:aws:scheduler:${var.region}:${local.account_id}:schedule/default/${var.project}-job-*"]
   }
 
   statement {

@@ -21,3 +21,9 @@ variable "image_tag" {
   type        = string
   default     = "latest"
 }
+
+variable "schedule_enabled" {
+  description = "Whether the daily schedule (schedule.tf) is on. Set to false to pause the daily run."
+  type        = bool
+  default     = true
+}

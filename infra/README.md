@@ -5,7 +5,7 @@ Terraform for the project's AWS resources. Names and tags follow [NAMING.md](NAM
 ## Architecture
 
 What exists in AWS today (region us-east-2). Nothing here runs between jobs: a Fargate task exists only while
-a job runs, then exits.
+a job runs, then exits. A daily schedule starts the job; you can also start it by hand.
 
 ```mermaid
 flowchart LR
@@ -13,16 +13,18 @@ flowchart LR
     sources["<b>External data sources</b><br/>for example the Kroger API"]
 
     subgraph aws["AWS account - us-east-2 (Ohio)"]
+        schedule["<b>EventBridge Scheduler</b><br/>every day at 5:00 AM Pacific"]
         taskDef["<b>ECS task definition</b><br/>cluster: grocery-price-tracking<br/>job image, 1 vCPU, 4 GB"]
         task["<b>Fargate task</b><br/>default VPC, outbound HTTPS only<br/>runs one job, then exits"]
         ecr["<b>ECR repository</b><br/>grocery-price-tracking<br/>(job image)"]
         ssm["<b>SSM Parameter Store</b><br/>/grocery-price-tracking/...<br/>job credentials"]
         logs["<b>CloudWatch Logs</b><br/>/ecs/grocery-price-tracking"]
         data[("<b>S3 data bucket</b><br/>Delta tables")]
-        iam["<b>IAM roles</b><br/>(execution and task)"]
+        iam["<b>IAM roles</b><br/>(execution, task, scheduler)"]
     end
 
-    dev -->|"starts job"| taskDef
+    schedule -->|"starts job daily"| taskDef
+    dev -->|"starts job by hand"| taskDef
     taskDef -->|"launches"| task
     ecr -->|"image"| task
     ssm -->|"credentials"| task
@@ -35,18 +37,17 @@ flowchart LR
     class dev,sources external
 ```
 
-Dashed boxes are outside AWS, and the dotted arrow is the two IAM roles the task uses: an execution role (ECS
-uses it to pull the image, read the secrets and write logs) and a task role (the job's own access to the data
-bucket).
+Dashed boxes are outside AWS, and the dotted arrow is the IAM roles around the task: an execution role (ECS
+uses it to pull the image, read the secrets and write logs), a task role (the job's own access to the data
+bucket) and a scheduler role (lets EventBridge Scheduler start the task, nothing else).
 
 Terraform creates everything in the AWS account except the SSM secrets, which are entered by hand (see below).
-Planned next: a daily schedule (EventBridge Scheduler) that starts the task, and a release pipeline step that
-pushes the image.
 
 | Path | What |
 |---|---|
 | `main.tf`, `variables.tf`, `outputs.tf` | The project's resources (data bucket). State lives in S3. |
 | `jobs.tf` | The job: ECR repository, ECS cluster, Fargate task definition, roles, log group. |
+| `schedule.tf` | The daily schedule (EventBridge Scheduler) and the role it uses to start the job. |
 | `bootstrap/` | One-time setup: state bucket and the release IAM user. Local state. |
 | `../.github/workflows/release.yml` | Manual pipeline: plan, and optionally apply, behind an approval. |
 
@@ -125,6 +126,22 @@ aws logs tail "$(terraform -chdir=infra output -raw log_group_name)" --region us
 ```
 A task that fails to start (for example, the image or a secret is missing) shows the reason under
 `aws ecs describe-tasks`, in `stoppedReason`.
+
+### The daily schedule
+
+`schedule.tf` starts the job every day at **5:00 AM Pacific** (`America/Los_Angeles`, so it follows daylight
+saving time). It names the task definition without a revision, so it always runs the newest one: a Release that
+pushes a new image is picked up by the next run, with no change to the schedule. Running the job twice in a day
+is harmless, because each write replaces that day's partition.
+
+- **Check it:** in the AWS console, open **EventBridge Scheduler** (region us-east-2) and look at
+  `grocery-price-tracking-job-daily`, or look in the cluster's **Tasks** tab (stopped tasks) after 5 AM.
+- **Pause it:** set `schedule_enabled` to `false` (default in `variables.tf`) and apply. Disabling it only in
+  the console is undone by the next Release, which re-applies the Terraform.
+- **Change the time:** edit `schedule_expression` in `schedule.tf`. It is a cron expression in the schedule's
+  time zone.
+- **A failed run is not reported anywhere.** Look at the cluster's stopped tasks, or the log group. An email
+  alert (EventBridge rule plus SNS) can be added if you want one.
 
 To remove everything the job created: `terraform -chdir=infra destroy` (the repository is deleted
 with its images), then delete the two SSM parameters by hand.
