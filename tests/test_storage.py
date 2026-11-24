@@ -2,6 +2,7 @@ import datetime as dt
 
 import pytest
 from botocore.exceptions import NoCredentialsError
+from pyspark.errors import AnalysisException
 
 from grocery_price_tracking.common import storage
 from grocery_price_tracking.common.storage import (
@@ -124,6 +125,40 @@ def test_write_delta_replace_where_rewrites_only_that_day(spark, tmp_path):
         (today, "eggs"),
     ]
     assert (stats.version, stats.num_rows) == (1, 2)
+
+
+def test_write_delta_merge_schema_adds_new_columns(spark, tmp_path):
+    uri = str(tmp_path / "t")
+    day = dt.date(2026, 11, 15)
+    write_delta(
+        spark.createDataFrame([(day, "milk")], ["captured_date", "item"]),
+        uri,
+        partition_by=["captured_date"],
+    )
+    wider = spark.createDataFrame(
+        [(day, "bread", 2.5)], ["captured_date", "item", "price"]
+    )
+    replace = {
+        "partition_by": ["captured_date"],
+        "replace_where": "captured_date = DATE '2026-11-15'",
+    }
+
+    # By default a new column is rejected, and the table is left as it was.
+    with pytest.raises(AnalysisException):
+        write_delta(wider, uri, **replace)
+    assert "price" not in read_delta(spark, uri).columns
+
+    write_delta(wider, uri, merge_schema=True, **replace)
+
+    table = read_delta(spark, uri)
+    assert "price" in table.columns
+    assert [row.item for row in table.collect()] == ["bread"]
+
+
+def test_write_delta_merge_schema_rejects_a_full_overwrite(spark, tmp_path):
+    df = spark.createDataFrame([("milk",)], ["item"])
+    with pytest.raises(ValueError, match="full overwrite"):
+        write_delta(df, str(tmp_path / "t"), merge_schema=True)
 
 
 def test_write_delta_replace_where_needs_overwrite(spark, tmp_path):

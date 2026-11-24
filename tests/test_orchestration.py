@@ -5,13 +5,13 @@ from pathlib import Path
 from dagster import materialize
 
 from grocery_price_tracking.common.storage import WriteStats, lake_uri
-from grocery_price_tracking.jobs import qfc_eggs_job
+from grocery_price_tracking.jobs import qfc_grocery_job
 from grocery_price_tracking.orchestration import definitions
 from grocery_price_tracking.orchestration.definitions import kroger_bronze_products
 
 
 def test_asset_records_the_write_stats_as_metadata(monkeypatch):
-    monkeypatch.setattr(qfc_eggs_job, "run", lambda: WriteStats(4, 12, 2048, 1))
+    monkeypatch.setattr(qfc_grocery_job, "run", lambda: WriteStats(4, 12, 2048, 1))
 
     result = materialize([kroger_bronze_products])
 
@@ -19,7 +19,7 @@ def test_asset_records_the_write_stats_as_metadata(monkeypatch):
     (event,) = result.get_asset_materialization_events()
     metadata = {k: v.value for k, v in event.materialization.metadata.items()}
     assert metadata == {
-        "uri": lake_uri(qfc_eggs_job.OUTPUT),
+        "uri": lake_uri(qfc_grocery_job.OUTPUT),
         "delta_version": 4,
         "num_rows": 12,
         "num_bytes": 2048,

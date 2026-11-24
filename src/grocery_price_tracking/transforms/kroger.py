@@ -2,7 +2,10 @@
 
 raw_products() is the Bronze step: keep every product the API returned, plus the
 metadata needed to line snapshots up by store and day. egg_prices() is the Silver
-step: flatten and filter to the egg products a report cares about.
+step: flatten and filter to the egg products a report cares about. Bronze holds
+every search term (eggs, milk, bread), so feed egg_prices only the rows whose
+search_term is "eggs"; its description filter alone would let in e.g. "Egg Nog"
+from the milk search.
 """
 
 from datetime import date
@@ -23,14 +26,14 @@ def raw_products(
 ) -> DataFrame:
     """Add source metadata to the raw product search results, keeping every row.
 
-    Bronze stores the API response as it came back, so the egg filter and price
+    Bronze stores the API response as it came back, so the filters and price
     logic can change later without another API call.
 
     Arguments:
     df -- raw products from Kroger, with the fields the JSON API returned.
     store_location_id -- locationId of the store the prices came from.
     store_name -- human-readable store name.
-    search_term -- term sent to the product search, e.g. "eggs".
+    search_term -- term sent to the product search, e.g. "eggs" or "milk".
     captured_date -- day this snapshot belongs to. One snapshot per store, search
         term and day.
 
@@ -50,8 +53,9 @@ def egg_prices(df: DataFrame, store_location_id: str, store_name: str) -> DataFr
     """Flatten Kroger product results into price observations for one store.
 
     Arguments:
-    df -- raw products from Kroger, with productId, upc, brand, description,
-        and items (a one-element array with size, price and inventory).
+    df -- raw products from the "eggs" search only, with productId, upc, brand,
+        description, and items (a one-element array with size, price and
+        inventory).
     store_location_id -- locationId of the store the prices came from.
     store_name -- human-readable store name.
 
